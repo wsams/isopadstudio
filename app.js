@@ -1748,7 +1748,7 @@
       const tuningReset = document.getElementById("tuning-reset-row");
       if (padsReset) padsReset.hidden = true;
       if (tuningReset) tuningReset.hidden = false;
-      const footer = document.querySelector(".footer p");
+      const footer = document.querySelector(".footer-status");
       if (footer) {
         footer.textContent = `${inst.label} · capo & tunings editable · songs save in localStorage · serve over HTTP.`;
       }
@@ -1770,7 +1770,7 @@
       const tuningReset = document.getElementById("tuning-reset-row");
       if (padsReset) padsReset.hidden = false;
       if (tuningReset) tuningReset.hidden = true;
-      const footer = document.querySelector(".footer p");
+      const footer = document.querySelector(".footer-status");
       if (footer) {
         const map = getPadMap();
         footer.textContent = `${layout.label} · Pad 1 = ${midiToLabel(map[0])} (editable in Pads) · songs & maps save in localStorage · serve over HTTP.`;

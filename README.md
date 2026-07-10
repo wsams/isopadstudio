@@ -1,12 +1,16 @@
 # IsoPad Studio
 
-**Try it now:** [https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html)
+You don’t need to install anything. Open the app in your browser:
+
+**[https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html)**
+
+Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isopadstudio)
 
 Isomorphic pad charts for controllers — **iso** (same shapes in every key) + **pad** + **studio** (chords, scales, songs, and your own note map).
 
 > Learn one chord shape. Play it in every key. Charts, scales, and songs for MPD / LPD / MPC-style pads.
 
-Chord and scale charts for **pad controllers**. Map each pad to any note, then browse chords, scales, and progressions that light the right pads automatically.
+Chord and scale charts for **pad controllers** and string instruments. Map each pad (or string tuning) to your setup, then browse chords, scales, and progressions that light the right notes automatically.
 
 Supports pad layouts and string instruments:
 
@@ -70,12 +74,11 @@ Flip the header to **2×4** and the whole app shrinks to eight pads — same son
 
 ## Requirements
 
-A modern desktop browser (Chrome, Firefox, Safari, or Edge) and a **local web server**.
+A modern browser (Chrome, Firefox, Safari, or Edge). That’s it if you’re using the [hosted app](https://wsams.github.io/isopadstudio/index.html).
 
-> **Do not open `index.html` directly as a `file://` URL.**  
-> Some browsers restrict audio, fonts, or storage when pages are loaded from disk. Always serve the folder over HTTP.
+To run a local copy from this repo, serve the folder over HTTP (don’t open `index.html` as a `file://` URL — browsers often block audio or storage that way).
 
-## Quick start
+## Run locally (optional)
 
 ```bash
 cd isopadstudio
