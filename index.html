@@ -93,6 +93,10 @@
       </div>
       <div class="category-chips" id="prog-genre-chips"></div>
       <p class="hint" id="prog-count"></p>
+      <p class="hint">
+        <strong>Add to Song</strong> appends the progression as its own section (verse, chorus, bridge…).
+        <strong>Replace song</strong> starts fresh. Preview loops at the Song Builder tempo until you stop it.
+      </p>
       <div class="prog-list" id="prog-list"></div>
     </section>
 
@@ -118,18 +122,27 @@
       </div>
 
       <div class="toolbar secondary">
+        <div class="field">
+          <label for="song-tempo">Tempo (BPM)</label>
+          <input id="song-tempo" type="number" min="40" max="240" step="1" value="100" />
+        </div>
         <button type="button" class="btn" id="btn-save-song">Save</button>
         <button type="button" class="btn" id="btn-new-song">New</button>
         <button type="button" class="btn" id="btn-delete-song">Delete</button>
-        <button type="button" class="btn" id="btn-play-song">Play progression</button>
+        <button type="button" class="btn primary" id="btn-play-song">▶ Play song</button>
+        <button type="button" class="btn" id="btn-add-section">＋ Section</button>
         <button type="button" class="btn" id="btn-print">Print</button>
-        <button type="button" class="btn danger" id="btn-clear-song">Clear bars</button>
+        <button type="button" class="btn danger" id="btn-clear-song">Clear song</button>
       </div>
+
+      <p class="hint" id="song-structure-hint">
+        Songs are built from <strong>progressions</strong> (verse, chorus, bridge…). Add them from the Progressions tab, then drag sections to rearrange. Playback loops until you stop it.
+      </p>
 
       <div class="overlay-preview" id="overlay-preview" hidden></div>
 
-      <div class="song-strip" id="song-strip">
-        <p class="empty-state">No chords yet. Browse the Library and hit <strong>Add to Song</strong>.</p>
+      <div class="song-sections" id="song-strip">
+        <p class="empty-state">No progressions yet. Open <strong>Progressions</strong> and hit <strong>Add to Song</strong>, or add chords from the Library.</p>
       </div>
 
       <div class="song-legend" id="song-legend"></div>

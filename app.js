@@ -145,16 +145,19 @@
     },
   };
 
-  const STORAGE_KEY = "isopadstudio.songs.v1";
+  const STORAGE_KEY = "isopadstudio.songs.v2";
   const ACTIVE_KEY = "isopadstudio.activeSongId";
   const LAYOUT_KEY = "isopadstudio.layout";
   const PADMAP_KEY = "isopadstudio.padMaps.v1";
   const LEGACY_KEYS = {
-    songs: ["chromapad.songs.v1", "mpc16chords.songs.v1"],
+    songs: ["isopadstudio.songs.v1", "chromapad.songs.v1", "mpc16chords.songs.v1"],
     active: ["chromapad.activeSongId", "mpc16chords.activeSongId"],
     layout: ["chromapad.layout"],
     padMaps: ["chromapad.padMaps.v1"],
   };
+
+  const SECTION_ROLES = ["Intro", "Verse", "Pre-Chorus", "Chorus", "Bridge", "Solo", "Outro", "Custom"];
+  const DEFAULT_TEMPO = 100;
   const M = globalThis.IsoPadMusic;
   if (!M) {
     throw new Error("IsoPadMusic failed to load — include lib/music.js before app.js");
@@ -257,15 +260,127 @@
     return sortPadsByPitchOnMap(pads, getPadMap());
   }
 
-  function playPads(pads, { sequential = false, noteDur = 0.45, gap = 0.28, chordDur = 1.6 } = {}) {
+  function playPads(pads, { sequential = false, noteDur = null, gap = null, chordDur = null } = {}) {
+    const step = chordSeconds();
     const ctx = ensureAudio();
     const now = ctx.currentTime + 0.02;
     const ordered = sequential ? sortPadsByPitch(pads) : [...pads];
     if (sequential) {
-      ordered.forEach((pad, i) => playTone(pad, now + i * gap, noteDur));
+      const g = gap ?? Math.min(0.28, step / Math.max(ordered.length, 1));
+      const nd = noteDur ?? Math.min(0.45, g * 1.4);
+      ordered.forEach((pad, i) => playTone(pad, now + i * g, nd));
     } else {
-      ordered.forEach((pad) => playTone(pad, now, chordDur));
+      ordered.forEach((pad) => playTone(pad, now, chordDur ?? step * 0.9));
     }
+  }
+
+  // --- Looping playback (tempo-aware) ---
+  const playback = {
+    key: null,
+    stopFlag: false,
+    timeoutId: null,
+  };
+
+  function getTempo() {
+    const input = document.getElementById("song-tempo");
+    const fromUi = Number(input?.value);
+    if (Number.isFinite(fromUi) && fromUi >= 40 && fromUi <= 240) return fromUi;
+    const song = activeSong();
+    return song?.tempo || DEFAULT_TEMPO;
+  }
+
+  function chordSeconds() {
+    // Two beats per chord/bar at the current tempo
+    return (60 / getTempo()) * 2;
+  }
+
+  function stopPlayback() {
+    playback.stopFlag = true;
+    if (playback.timeoutId) {
+      clearTimeout(playback.timeoutId);
+      playback.timeoutId = null;
+    }
+    playback.key = null;
+    updatePlayButtons();
+  }
+
+  function isPlaying(key) {
+    return playback.key === key;
+  }
+
+  function updatePlayButtons() {
+    const songBtn = document.getElementById("btn-play-song");
+    if (songBtn) {
+      songBtn.textContent = isPlaying("song") ? "⏹ Stop" : "▶ Play song";
+      songBtn.classList.toggle("playing", isPlaying("song"));
+    }
+    document.querySelectorAll("[data-play-key]").forEach((btn) => {
+      const key = btn.getAttribute("data-play-key");
+      const playing = isPlaying(key);
+      btn.textContent = playing ? "⏹ Stop" : btn.dataset.idleLabel || "▶ Preview";
+      btn.classList.toggle("playing", playing);
+    });
+    document.querySelectorAll("[data-section-play]").forEach((btn) => {
+      const key = btn.getAttribute("data-section-play");
+      const playing = isPlaying(key);
+      btn.textContent = playing ? "⏹" : "▶";
+      btn.title = playing ? "Stop" : "Preview section (loops)";
+      btn.classList.toggle("playing", playing);
+    });
+  }
+
+  function scheduleBars(bars, onDone) {
+    if (!bars.length) {
+      onDone();
+      return;
+    }
+    const ctx = ensureAudio();
+    const step = chordSeconds();
+    let t = ctx.currentTime + 0.05;
+    bars.forEach((bar) => {
+      if (bar.isScale) {
+        const sorted = sortPadsByPitch(bar.pads);
+        const noteGap = Math.min(0.22, step / Math.max(sorted.length, 1));
+        sorted.forEach((pad, i) => playTone(pad, t + i * noteGap, noteGap * 1.5));
+        t += Math.max(step, sorted.length * noteGap + 0.05);
+      } else {
+        const voicing = bar.primaryPads?.length ? bar.primaryPads : bar.pads;
+        voicing.forEach((pad) => playTone(pad, t, step * 0.9));
+        t += step;
+      }
+    });
+    const waitMs = Math.max(0, (t - ctx.currentTime) * 1000);
+    playback.timeoutId = setTimeout(onDone, waitMs);
+  }
+
+  function toggleLoopPlay(key, getBars) {
+    if (isPlaying(key)) {
+      stopPlayback();
+      return;
+    }
+    stopPlayback();
+    playback.stopFlag = false;
+    playback.key = key;
+    updatePlayButtons();
+
+    const run = () => {
+      if (playback.stopFlag || playback.key !== key) return;
+      const bars = getBars();
+      if (!bars?.length) {
+        stopPlayback();
+        return;
+      }
+      scheduleBars(bars, () => {
+        if (playback.stopFlag || playback.key !== key) return;
+        run();
+      });
+    };
+    run();
+  }
+
+  function flattenSongBars(song) {
+    if (!song?.sections?.length) return [];
+    return song.sections.flatMap((s) => s.bars || []);
   }
 
   // --- Music helpers ---
@@ -378,6 +493,60 @@
     progSearch: "",
   };
 
+  function normalizeSong(song) {
+    if (!song || typeof song !== "object") return null;
+    if (!Array.isArray(song.sections)) {
+      const legacyBars = Array.isArray(song.bars) ? song.bars : [];
+      song.sections = legacyBars.length
+        ? [
+            {
+              id: uid(),
+              name: song.name || "Main",
+              role: "Verse",
+              genre: "",
+              bars: legacyBars,
+            },
+          ]
+        : [];
+    }
+    delete song.bars;
+    if (!Number.isFinite(song.tempo) || song.tempo < 40 || song.tempo > 240) {
+      song.tempo = DEFAULT_TEMPO;
+    }
+    song.sections = (song.sections || []).map((section) => normalizeSection(section));
+    if (!song.overlay) {
+      song.overlay = { root: "C", formula: "", enabled: false };
+    }
+    return song;
+  }
+
+  function normalizeSection(section) {
+    return {
+      id: section.id || uid(),
+      name: section.name || "Section",
+      role: SECTION_ROLES.includes(section.role) ? section.role : "Custom",
+      genre: section.genre || "",
+      sourceKey: section.sourceKey || "",
+      bars: Array.isArray(section.bars) ? section.bars : [],
+    };
+  }
+
+  function makeSection({ name = "Section", role = "Custom", genre = "", sourceKey = "", bars = [] } = {}) {
+    return {
+      id: uid(),
+      name,
+      role,
+      genre,
+      sourceKey,
+      bars: bars.map((b) => ({ ...b })),
+    };
+  }
+
+  function nextSectionRole(song) {
+    const defaults = ["Verse", "Chorus", "Bridge", "Verse", "Chorus", "Outro"];
+    return defaults[song.sections.length] || "Custom";
+  }
+
   function loadSongs() {
     try {
       let raw = localStorage.getItem(STORAGE_KEY);
@@ -388,7 +557,8 @@
         }
       }
       const parsed = JSON.parse(raw || "[]");
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(normalizeSong).filter(Boolean);
     } catch {
       return [];
     }
@@ -423,13 +593,21 @@
     const song = {
       id: uid(),
       name: "Untitled Song",
-      bars: [],
+      tempo: DEFAULT_TEMPO,
+      sections: [],
       overlay: { root: "C", formula: "Major / Ionian", enabled: false },
     };
     state.songs.push(song);
     state.activeSongId = song.id;
     persistSongs();
     return song;
+  }
+
+  function ensureTargetSection(song) {
+    if (!song.sections.length) {
+      song.sections.push(makeSection({ name: "Main", role: "Verse" }));
+    }
+    return song.sections[song.sections.length - 1];
   }
 
   // --- DOM helpers ---
@@ -440,6 +618,7 @@
       else if (k === "style" && typeof v === "object") Object.assign(node.style, v);
       else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
       else if (k === "html") node.innerHTML = v;
+      else if (k === "value") node.value = v == null ? "" : String(v);
       else if (v === false || v == null) return;
       else node.setAttribute(k, v === true ? "" : String(v));
     });
@@ -706,45 +885,21 @@
     renderOverlayControls();
     const song = activeSong();
     document.getElementById("song-name").value = song?.name || "";
+    const tempoInput = document.getElementById("song-tempo");
+    if (tempoInput) tempoInput.value = String(song?.tempo || DEFAULT_TEMPO);
 
     const strip = document.getElementById("song-strip");
     strip.innerHTML = "";
-    if (!song || !song.bars.length) {
+    if (!song || !song.sections.length) {
       strip.appendChild(
-        el("p", { class: "empty-state", html: 'No chords yet. Browse the Library and hit <strong>Add to Song</strong>.' })
+        el("p", {
+          class: "empty-state",
+          html: 'No progressions yet. Open <strong>Progressions</strong> and hit <strong>Add to Song</strong>, or add chords from the Library.',
+        })
       );
     } else {
-      song.bars.forEach((bar, index) => {
-        const actions = el("div", { class: "song-card-actions" }, [
-          el("button", {
-            type: "button",
-            class: "btn",
-            onClick: () => moveBar(index, -1),
-          }, "←"),
-          el("button", {
-            type: "button",
-            class: "btn",
-            onClick: () => moveBar(index, 1),
-          }, "→"),
-          el("button", {
-            type: "button",
-            class: "btn danger",
-            onClick: () => removeBar(index),
-          }, "✕"),
-        ]);
-        strip.appendChild(
-          makeCard({
-            title: bar.title,
-            pads: bar.pads,
-            primaryPads: bar.primaryPads || [],
-            color: bar.color,
-            rootIndex: bar.rootIndex ?? null,
-            isScale: !!bar.isScale,
-            barNum: index + 1,
-            actions,
-            onPlay: (list) => playPads(list, { sequential: !!bar.isScale }),
-          })
-        );
+      song.sections.forEach((section, sectionIndex) => {
+        strip.appendChild(renderSectionBlock(song, section, sectionIndex));
       });
     }
 
@@ -772,12 +927,13 @@
       overlayBox.innerHTML = "";
     }
 
-    // Legend of colors used
+    // Legend of colors used across all sections
     const legend = document.getElementById("song-legend");
     legend.innerHTML = "";
-    if (song?.bars?.length) {
+    const allBars = flattenSongBars(song);
+    if (allBars.length) {
       const seen = new Map();
-      song.bars.forEach((b) => {
+      allBars.forEach((b) => {
         if (!seen.has(b.color)) seen.set(b.color, b.title);
       });
       seen.forEach((title, color) => {
@@ -789,35 +945,297 @@
         );
       });
     }
+
+    updatePlayButtons();
   }
 
-  function moveBar(index, dir) {
+  function renderSectionBlock(song, section, sectionIndex) {
+    const sectionKey = `section:${section.id}`;
+    const block = el("article", {
+      class: "song-section",
+      "data-section-id": section.id,
+    });
+
+    block.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      block.classList.add("drag-over");
+    });
+    block.addEventListener("dragleave", () => block.classList.remove("drag-over"));
+    block.addEventListener("drop", (e) => {
+      e.preventDefault();
+      block.classList.remove("drag-over");
+      const fromId = e.dataTransfer.getData("text/section-id");
+      const barPayload = e.dataTransfer.getData("text/bar-move");
+      if (barPayload) {
+        try {
+          const { sectionId: fromSectionId, barIndex } = JSON.parse(barPayload);
+          moveBarToSection(fromSectionId, barIndex, section.id, section.bars.length);
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      if (fromId && fromId !== section.id) {
+        reorderSection(fromId, section.id);
+      }
+    });
+
+    const roleSelect = el("select", {
+      class: "section-role",
+      onChange: (e) => {
+        section.role = e.target.value;
+        persistSongs();
+      },
+    });
+    SECTION_ROLES.forEach((role) => {
+      const opt = el("option", { value: role }, role);
+      if (role === section.role) opt.selected = true;
+      roleSelect.appendChild(opt);
+    });
+
+    const nameInput = el("input", {
+      type: "text",
+      class: "section-name",
+      value: section.name,
+      maxlength: "60",
+      onChange: (e) => {
+        section.name = e.target.value.trim() || section.role;
+        persistSongs();
+      },
+    });
+
+    const handle = el("span", { class: "section-handle", title: "Drag to reorder", draggable: "true" }, "⠿");
+    handle.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/section-id", section.id);
+      e.dataTransfer.effectAllowed = "move";
+      block.classList.add("dragging");
+    });
+    handle.addEventListener("dragend", () => block.classList.remove("dragging"));
+
+    const header = el("div", { class: "song-section-header" }, [
+      handle,
+      el("span", { class: "section-index" }, String(sectionIndex + 1)),
+      roleSelect,
+      nameInput,
+      section.genre ? el("span", { class: "section-genre" }, section.genre) : null,
+      el("div", { class: "song-section-actions" }, [
+        el("button", {
+          type: "button",
+          class: "btn ghost",
+          "data-section-play": sectionKey,
+          title: "Preview section (loops)",
+          onClick: () =>
+            toggleLoopPlay(sectionKey, () => {
+              const s = activeSong()?.sections.find((x) => x.id === section.id);
+              return s?.bars || [];
+            }),
+        }, isPlaying(sectionKey) ? "⏹" : "▶"),
+        el("button", {
+          type: "button",
+          class: "btn",
+          title: "Duplicate section",
+          onClick: () => duplicateSection(sectionIndex),
+        }, "⧉"),
+        el("button", {
+          type: "button",
+          class: "btn",
+          title: "Move up",
+          onClick: () => moveSection(sectionIndex, -1),
+        }, "↑"),
+        el("button", {
+          type: "button",
+          class: "btn",
+          title: "Move down",
+          onClick: () => moveSection(sectionIndex, 1),
+        }, "↓"),
+        el("button", {
+          type: "button",
+          class: "btn danger",
+          title: "Remove section",
+          onClick: () => removeSection(sectionIndex),
+        }, "✕"),
+      ]),
+    ]);
+
+    const chords = el("div", { class: "song-section-chords" });
+    if (!section.bars.length) {
+      chords.appendChild(el("p", { class: "section-empty" }, "Empty — add chords from Library or drop a progression here."));
+    } else {
+      section.bars.forEach((bar, barIndex) => {
+        chords.appendChild(renderBarCard(section, bar, barIndex));
+      });
+    }
+
+    block.appendChild(header);
+    block.appendChild(chords);
+    return block;
+  }
+
+  function renderBarCard(section, bar, barIndex) {
+    const actions = el("div", { class: "song-card-actions" }, [
+      el("button", {
+        type: "button",
+        class: "btn",
+        onClick: () => moveBar(section.id, barIndex, -1),
+      }, "←"),
+      el("button", {
+        type: "button",
+        class: "btn",
+        onClick: () => moveBar(section.id, barIndex, 1),
+      }, "→"),
+      el("button", {
+        type: "button",
+        class: "btn danger",
+        onClick: () => removeBar(section.id, barIndex),
+      }, "✕"),
+    ]);
+
+    const card = makeCard({
+      title: bar.title,
+      pads: bar.pads,
+      primaryPads: bar.primaryPads || [],
+      color: bar.color,
+      rootIndex: bar.rootIndex ?? null,
+      isScale: !!bar.isScale,
+      barNum: barIndex + 1,
+      actions,
+      onPlay: (list) => playPads(list, { sequential: !!bar.isScale }),
+    });
+    card.classList.add("song-card");
+    card.draggable = true;
+    card.addEventListener("dragstart", (e) => {
+      e.stopPropagation();
+      e.dataTransfer.setData(
+        "text/bar-move",
+        JSON.stringify({ sectionId: section.id, barIndex })
+      );
+      e.dataTransfer.setData("text/section-id", "");
+      e.dataTransfer.effectAllowed = "move";
+      card.classList.add("dragging");
+    });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.add("drag-over");
+    });
+    card.addEventListener("dragleave", () => card.classList.remove("drag-over"));
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      card.classList.remove("drag-over");
+      const payload = e.dataTransfer.getData("text/bar-move");
+      if (!payload) return;
+      try {
+        const { sectionId: fromSectionId, barIndex: fromIndex } = JSON.parse(payload);
+        moveBarToSection(fromSectionId, fromIndex, section.id, barIndex);
+      } catch {
+        /* ignore */
+      }
+    });
+    return card;
+  }
+
+  function findSection(sectionId) {
+    const song = activeSong();
+    if (!song) return null;
+    return song.sections.find((s) => s.id === sectionId) || null;
+  }
+
+  function reorderSection(fromId, beforeId) {
     const song = activeSong();
     if (!song) return;
-    const j = index + dir;
-    if (j < 0 || j >= song.bars.length) return;
-    const tmp = song.bars[index];
-    song.bars[index] = song.bars[j];
-    song.bars[j] = tmp;
+    const from = song.sections.findIndex((s) => s.id === fromId);
+    const to = song.sections.findIndex((s) => s.id === beforeId);
+    if (from < 0 || to < 0 || from === to) return;
+    const [item] = song.sections.splice(from, 1);
+    const insertAt = song.sections.findIndex((s) => s.id === beforeId);
+    song.sections.splice(insertAt < 0 ? song.sections.length : insertAt, 0, item);
     persistSongs();
     renderSong();
   }
 
-  function removeBar(index) {
+  function moveSection(index, dir) {
     const song = activeSong();
     if (!song) return;
-    song.bars.splice(index, 1);
+    const j = index + dir;
+    if (j < 0 || j >= song.sections.length) return;
+    const tmp = song.sections[index];
+    song.sections[index] = song.sections[j];
+    song.sections[j] = tmp;
+    persistSongs();
+    renderSong();
+  }
+
+  function duplicateSection(index) {
+    const song = activeSong();
+    if (!song) return;
+    const src = song.sections[index];
+    if (!src) return;
+    const copy = makeSection({
+      name: `${src.name} copy`,
+      role: src.role,
+      genre: src.genre,
+      sourceKey: src.sourceKey,
+      bars: src.bars,
+    });
+    song.sections.splice(index + 1, 0, copy);
+    persistSongs();
+    renderSong();
+  }
+
+  function removeSection(index) {
+    const song = activeSong();
+    if (!song) return;
+    song.sections.splice(index, 1);
+    persistSongs();
+    renderSong();
+  }
+
+  function moveBar(sectionId, index, dir) {
+    const section = findSection(sectionId);
+    if (!section) return;
+    const j = index + dir;
+    if (j < 0 || j >= section.bars.length) return;
+    const tmp = section.bars[index];
+    section.bars[index] = section.bars[j];
+    section.bars[j] = tmp;
+    persistSongs();
+    renderSong();
+  }
+
+  function removeBar(sectionId, index) {
+    const section = findSection(sectionId);
+    if (!section) return;
+    section.bars.splice(index, 1);
+    persistSongs();
+    renderSong();
+  }
+
+  function moveBarToSection(fromSectionId, fromIndex, toSectionId, toIndex) {
+    const song = activeSong();
+    if (!song) return;
+    const from = song.sections.find((s) => s.id === fromSectionId);
+    const to = song.sections.find((s) => s.id === toSectionId);
+    if (!from || !to || fromIndex < 0 || fromIndex >= from.bars.length) return;
+    const [bar] = from.bars.splice(fromIndex, 1);
+    let insertAt = toIndex;
+    if (fromSectionId === toSectionId && fromIndex < toIndex) insertAt -= 1;
+    insertAt = Math.max(0, Math.min(insertAt, to.bars.length));
+    to.bars.splice(insertAt, 0, bar);
     persistSongs();
     renderSong();
   }
 
   function addCurrentToSong() {
     const song = ensureActiveSong();
+    const section = ensureTargetSection(song);
     const entry = getDict(state.kind)[state.formula];
     const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
       fillBoard: state.kind === "scale",
     });
-    song.bars.push({
+    section.bars.push({
       title: displayTitle(state.root, state.formula, entry),
       pads,
       primaryPads,
@@ -829,29 +1247,24 @@
       kind: state.kind,
     });
     persistSongs();
-    // brief feedback via button text
     const btn = document.getElementById("btn-add-song");
     const prev = btn.textContent;
     btn.textContent = "Added ✓";
     setTimeout(() => (btn.textContent = prev), 900);
   }
 
-  function playProgression() {
+  function playSongLoop() {
     const song = activeSong();
-    if (!song?.bars?.length) return;
-    const ctx = ensureAudio();
-    let t = ctx.currentTime + 0.05;
-    song.bars.forEach((bar) => {
-      if (bar.isScale) {
-        const sorted = sortPadsByPitch(bar.pads);
-        sorted.forEach((pad, i) => playTone(pad, t + i * 0.22, 0.35));
-        t += sorted.length * 0.22 + 0.15;
-      } else {
-        const voicing = bar.primaryPads?.length ? bar.primaryPads : bar.pads;
-        voicing.forEach((pad) => playTone(pad, t, 1.1));
-        t += 1.25;
-      }
-    });
+    if (!song || !flattenSongBars(song).length) return;
+    toggleLoopPlay("song", () => flattenSongBars(activeSong()));
+  }
+
+  function addEmptySection() {
+    const song = ensureActiveSong();
+    const role = nextSectionRole(song);
+    song.sections.push(makeSection({ name: role, role }));
+    persistSongs();
+    renderSong();
   }
 
   // --- Pad player ---
@@ -895,7 +1308,10 @@
 
   function reresolveSongsForLayout() {
     state.songs.forEach((song) => {
-      song.bars = (song.bars || []).map(reresolveBar);
+      song.sections = (song.sections || []).map((section) => ({
+        ...section,
+        bars: (section.bars || []).map(reresolveBar),
+      }));
     });
     persistSongs();
   }
@@ -1185,6 +1601,7 @@
     items.forEach((prog) => {
       const bars = resolveProgressionBars(prog, state.progKey);
       const uniques = uniqueChordLabels(bars);
+      const playKey = `prog:${prog.name}:${state.progKey}`;
       const card = el("article", { class: "prog-card" });
       const main = el("div", { class: "prog-card-main" }, [
         el("div", { class: "prog-card-top" }, [
@@ -1209,7 +1626,7 @@
             class: "btn primary",
             onClick: () => loadProgression(prog, false),
           },
-          "Load into Song"
+          "Replace song"
         ),
         el(
           "button",
@@ -1218,16 +1635,19 @@
             class: "btn",
             onClick: () => loadProgression(prog, true),
           },
-          "Append to Song"
+          "Add to Song"
         ),
         el(
           "button",
           {
             type: "button",
             class: "btn ghost",
-            onClick: () => playProgressionBars(bars),
+            "data-play-key": playKey,
+            "data-idle-label": "▶ Preview",
+            onClick: () =>
+              toggleLoopPlay(playKey, () => resolveProgressionBars(prog, state.progKey)),
           },
-          "▶ Preview"
+          isPlaying(playKey) ? "⏹ Stop" : "▶ Preview"
         ),
       ]);
       card.appendChild(main);
@@ -1236,33 +1656,34 @@
     });
   }
 
-  function playProgressionBars(bars) {
-    if (!bars.length) return;
-    const ctx = ensureAudio();
-    let t = ctx.currentTime + 0.05;
-    bars.forEach((bar) => {
-      const voicing = bar.primaryPads?.length ? bar.primaryPads : bar.pads;
-      voicing.forEach((pad) => playTone(pad, t, 0.85));
-      t += 0.95;
-    });
-  }
-
   function loadProgression(prog, append) {
     const bars = resolveProgressionBars(prog, state.progKey);
     const song = ensureActiveSong();
-    const name = `${prog.name} (${state.progKey})`;
+    const sectionName = `${prog.name} (${state.progKey})`;
+    const section = makeSection({
+      name: sectionName,
+      role: append ? nextSectionRole(song) : "Verse",
+      genre: prog.genre || "",
+      sourceKey: state.progKey,
+      bars,
+    });
+
     if (!append) {
-      song.bars = bars;
-      song.name = name;
-      document.getElementById("song-name").value = name;
+      song.sections = [section];
+      song.name = sectionName;
+      document.getElementById("song-name").value = sectionName;
     } else {
-      song.bars = song.bars.concat(bars);
-      if (!song.name || song.name === "Untitled Song" || song.name === "New Song") {
-        song.name = name;
-        document.getElementById("song-name").value = name;
+      // If appending onto an empty song, treat like first section naming
+      if (!song.sections.length) {
+        song.name = sectionName;
+        document.getElementById("song-name").value = sectionName;
+      } else if (!song.name || song.name === "Untitled Song" || song.name === "New Song") {
+        song.name = sectionName;
+        document.getElementById("song-name").value = sectionName;
       }
+      song.sections.push(section);
     }
-    // Sensible scale overlay for major vs minor-leaning forms
+
     const minorLean = /minor|aeolian|andalusian|phrygian|metal|neo-soul|i–|i7|im/i.test(
       `${prog.name} ${prog.numerals} ${prog.aka || ""}`
     );
@@ -1333,6 +1754,7 @@
       refreshSongSelect();
     });
     document.getElementById("song-select").addEventListener("change", (e) => {
+      stopPlayback();
       state.activeSongId = e.target.value || null;
       persistSongs();
       renderSong();
@@ -1371,10 +1793,12 @@
       setTimeout(() => (btn.textContent = prev), 900);
     });
     document.getElementById("btn-new-song").addEventListener("click", () => {
+      stopPlayback();
       const song = {
         id: uid(),
         name: "New Song",
-        bars: [],
+        tempo: getTempo(),
+        sections: [],
         overlay: { root: "C", formula: "", enabled: false },
       };
       state.songs.push(song);
@@ -1386,6 +1810,7 @@
       const song = activeSong();
       if (!song) return;
       if (!confirm(`Delete “${song.name}”?`)) return;
+      stopPlayback();
       state.songs = state.songs.filter((s) => s.id !== song.id);
       state.activeSongId = state.songs[0]?.id || null;
       persistSongs();
@@ -1393,13 +1818,24 @@
     });
     document.getElementById("btn-clear-song").addEventListener("click", () => {
       const song = activeSong();
-      if (!song?.bars.length) return;
-      if (!confirm("Clear all bars in this song?")) return;
-      song.bars = [];
+      if (!song?.sections.length) return;
+      if (!confirm("Clear all progressions in this song?")) return;
+      stopPlayback();
+      song.sections = [];
       persistSongs();
       renderSong();
     });
-    document.getElementById("btn-play-song").addEventListener("click", playProgression);
+    document.getElementById("btn-play-song").addEventListener("click", playSongLoop);
+    document.getElementById("btn-add-section").addEventListener("click", addEmptySection);
+    document.getElementById("song-tempo").addEventListener("change", (e) => {
+      const song = ensureActiveSong();
+      let bpm = Number(e.target.value);
+      if (!Number.isFinite(bpm)) bpm = DEFAULT_TEMPO;
+      bpm = Math.max(40, Math.min(240, Math.round(bpm)));
+      e.target.value = String(bpm);
+      song.tempo = bpm;
+      persistSongs();
+    });
     document.getElementById("btn-print").addEventListener("click", () => {
       switchTab("song");
       setTimeout(() => window.print(), 50);

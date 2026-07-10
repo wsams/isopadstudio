@@ -484,11 +484,126 @@ input[type="text"]:focus {
   border-top: 1px solid var(--border);
 }
 
-.song-strip {
+.song-strip,
+.song-sections {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 16px;
   min-height: 120px;
+}
+
+.song-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.song-section.dragging {
+  opacity: 0.55;
+}
+
+.song-section.drag-over {
+  border-color: var(--c2);
+  box-shadow: 0 0 0 1px rgba(61, 184, 255, 0.35);
+}
+
+.song-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-handle {
+  cursor: grab;
+  color: var(--muted);
+  font-size: 1.1rem;
+  user-select: none;
+  line-height: 1;
+}
+
+.section-index {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  min-width: 1.2em;
+}
+
+.section-role {
+  min-width: 7.5rem;
+}
+
+.section-name {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: inherit;
+  padding: 6px 10px;
+  font: inherit;
+}
+
+.section-genre {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.song-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.song-section-actions .btn {
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  min-width: 2rem;
+}
+
+.song-section-actions .btn.playing,
+.btn.playing {
+  background: rgba(255, 77, 109, 0.18);
+  border-color: rgba(255, 77, 109, 0.45);
+}
+
+.song-section-chords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.section-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 4px 0;
+}
+
+.song-card.dragging {
+  opacity: 0.5;
+}
+
+.song-card.drag-over {
+  outline: 2px solid var(--c2);
+  outline-offset: 2px;
+}
+
+#song-tempo {
+  width: 5.5rem;
+}
+
+.hint#song-structure-hint {
+  margin: 0 0 14px;
 }
 
 .empty-state {
@@ -839,8 +954,20 @@ input[type="text"]:focus {
     -webkit-print-color-adjust: exact;
   }
 
-  .song-strip {
+  .song-strip,
+  .song-sections {
     gap: 12px;
+  }
+
+  .song-section {
+    break-inside: avoid;
+    border: 1px solid #ccc;
+    background: #fff;
+  }
+
+  .song-section-actions,
+  .section-handle {
+    display: none !important;
   }
 
   .card {
