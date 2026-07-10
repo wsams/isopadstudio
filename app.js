@@ -1,0 +1,1444 @@
+(() => {
+  "use strict";
+
+  const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const COLORS = [
+    { id: "c1", css: "var(--c1)", hex: "#ff4d6d" },
+    { id: "c2", css: "var(--c2)", hex: "#3db8ff" },
+    { id: "c3", css: "var(--c3)", hex: "#f0c040" },
+    { id: "c4", css: "var(--c4)", hex: "#3ecf8e" },
+    { id: "c5", css: "var(--c5)", hex: "#c084fc" },
+    { id: "c6", css: "var(--c6)", hex: "#fb923c" },
+    { id: "c7", css: "var(--c7)", hex: "#67e8f9" },
+    { id: "c8", css: "var(--c8)", hex: "#f472b6" },
+  ];
+
+  /** @type {Record<string, {category: string, intervals: number[], short?: string}>} */
+  const CHORDS = {
+    // Triads
+    Major: { category: "Triads", intervals: [0, 4, 7], short: "maj" },
+    Minor: { category: "Triads", intervals: [0, 3, 7], short: "m" },
+    Diminished: { category: "Triads", intervals: [0, 3, 6], short: "dim" },
+    Augmented: { category: "Triads", intervals: [0, 4, 8], short: "aug" },
+    Sus2: { category: "Triads", intervals: [0, 2, 7], short: "sus2" },
+    Sus4: { category: "Triads", intervals: [0, 5, 7], short: "sus4" },
+
+    // Sixths
+    "Major 6": { category: "Sixths", intervals: [0, 4, 7, 9], short: "6" },
+    "Minor 6": { category: "Sixths", intervals: [0, 3, 7, 9], short: "m6" },
+    "Major 6/9": { category: "Sixths", intervals: [0, 4, 7, 9, 14], short: "6/9" },
+    "Minor 6/9": { category: "Sixths", intervals: [0, 3, 7, 9, 14], short: "m6/9" },
+
+    // Sevenths
+    "Major 7": { category: "Sevenths", intervals: [0, 4, 7, 11], short: "maj7" },
+    "Minor 7": { category: "Sevenths", intervals: [0, 3, 7, 10], short: "m7" },
+    "Dominant 7": { category: "Sevenths", intervals: [0, 4, 7, 10], short: "7" },
+    "Diminished 7": { category: "Sevenths", intervals: [0, 3, 6, 9], short: "dim7" },
+    "Half-diminished (m7♭5)": { category: "Sevenths", intervals: [0, 3, 6, 10], short: "m7♭5" },
+    "Minor-Major 7": { category: "Sevenths", intervals: [0, 3, 7, 11], short: "m(maj7)" },
+    "Augmented 7": { category: "Sevenths", intervals: [0, 4, 8, 10], short: "7♯5" },
+    "Major 7♯5": { category: "Sevenths", intervals: [0, 4, 8, 11], short: "maj7♯5" },
+    "Major 7♭5": { category: "Sevenths", intervals: [0, 4, 6, 11], short: "maj7♭5" },
+    "7sus4": { category: "Sevenths", intervals: [0, 5, 7, 10], short: "7sus4" },
+    "Dominant 7♭5": { category: "Sevenths", intervals: [0, 4, 6, 10], short: "7♭5" },
+
+    // Add / ninths
+    Add9: { category: "Ninths & adds", intervals: [0, 4, 7, 14], short: "add9" },
+    "Minor add9": { category: "Ninths & adds", intervals: [0, 3, 7, 14], short: "madd9" },
+    "Major 9": { category: "Ninths & adds", intervals: [0, 4, 7, 11, 14], short: "maj9" },
+    "Minor 9": { category: "Ninths & adds", intervals: [0, 3, 7, 10, 14], short: "m9" },
+    "Dominant 9": { category: "Ninths & adds", intervals: [0, 4, 7, 10, 14], short: "9" },
+    "Dominant 7♭9": { category: "Ninths & adds", intervals: [0, 4, 7, 10, 13], short: "7♭9" },
+    "Dominant 7♯9": { category: "Ninths & adds", intervals: [0, 4, 7, 10, 15], short: "7♯9" },
+    "Minor 9♭5": { category: "Ninths & adds", intervals: [0, 3, 6, 10, 14], short: "m9♭5" },
+
+    // Elevens / thirteens — compound tones folded onto the board
+    "Dominant 11": { category: "Jazz extensions", intervals: [0, 4, 7, 10, 14, 5], short: "11" },
+    "Minor 11": { category: "Jazz extensions", intervals: [0, 3, 7, 10, 14, 5], short: "m11" },
+    "Major 11": { category: "Jazz extensions", intervals: [0, 4, 7, 11, 14, 5], short: "maj11" },
+    "Dominant 13": { category: "Jazz extensions", intervals: [0, 4, 7, 10, 14, 9], short: "13" },
+    "Major 13": { category: "Jazz extensions", intervals: [0, 4, 7, 11, 14, 9], short: "maj13" },
+    "Minor 13": { category: "Jazz extensions", intervals: [0, 3, 7, 10, 14, 9], short: "m13" },
+    "7♯11": { category: "Jazz extensions", intervals: [0, 4, 7, 10, 6], short: "7♯11" },
+    "maj7♯11": { category: "Jazz extensions", intervals: [0, 4, 7, 11, 6], short: "maj7♯11" },
+    "9♯11": { category: "Jazz extensions", intervals: [0, 4, 7, 10, 14, 6], short: "9♯11" },
+
+    // Altered / specialty
+    "7alt (7♯5♯9)": { category: "Altered", intervals: [0, 4, 8, 10, 15], short: "7alt" },
+    "7♭5♭9": { category: "Altered", intervals: [0, 4, 6, 10, 13], short: "7♭5♭9" },
+    "7♯5♭9": { category: "Altered", intervals: [0, 4, 8, 10, 13], short: "7♯5♭9" },
+    "Power chord (5)": { category: "Specialty", intervals: [0, 7], short: "5" },
+    "Major add♯11": { category: "Specialty", intervals: [0, 4, 7, 6], short: "add♯11" },
+    Quartal: { category: "Specialty", intervals: [0, 5, 10, 15], short: "quartal" },
+  };
+
+  /** @type {Record<string, {category: string, intervals: number[], short?: string}>} */
+  const SCALES = {
+    // Major modes
+    "Major / Ionian": { category: "Major modes", intervals: [0, 2, 4, 5, 7, 9, 11], short: "Ionian" },
+    Dorian: { category: "Major modes", intervals: [0, 2, 3, 5, 7, 9, 10], short: "Dorian" },
+    Phrygian: { category: "Major modes", intervals: [0, 1, 3, 5, 7, 8, 10], short: "Phrygian" },
+    Lydian: { category: "Major modes", intervals: [0, 2, 4, 6, 7, 9, 11], short: "Lydian" },
+    Mixolydian: { category: "Major modes", intervals: [0, 2, 4, 5, 7, 9, 10], short: "Mixo" },
+    "Natural Minor / Aeolian": { category: "Major modes", intervals: [0, 2, 3, 5, 7, 8, 10], short: "Aeolian" },
+    Locrian: { category: "Major modes", intervals: [0, 1, 3, 5, 6, 8, 10], short: "Locrian" },
+
+    // Minor family
+    "Harmonic Minor": { category: "Minor family", intervals: [0, 2, 3, 5, 7, 8, 11], short: "Harm min" },
+    "Melodic Minor": { category: "Minor family", intervals: [0, 2, 3, 5, 7, 9, 11], short: "Mel min" },
+    "Dorian ♭2": { category: "Minor family", intervals: [0, 1, 3, 5, 7, 9, 10], short: "Dor ♭2" },
+    "Lydian Augmented": { category: "Minor family", intervals: [0, 2, 4, 6, 8, 9, 11], short: "Lyd+ " },
+    "Lydian Dominant": { category: "Minor family", intervals: [0, 2, 4, 6, 7, 9, 10], short: "Lyd Dom" },
+    "Mixolydian ♭6": { category: "Minor family", intervals: [0, 2, 4, 5, 7, 8, 10], short: "Mix ♭6" },
+    "Locrian ♮2": { category: "Minor family", intervals: [0, 2, 3, 5, 6, 8, 10], short: "Loc ♮2" },
+    "Altered / Super Locrian": { category: "Minor family", intervals: [0, 1, 3, 4, 6, 8, 10], short: "Alt" },
+
+    // Pentatonics & blues
+    "Major Pentatonic": { category: "Pentatonic & blues", intervals: [0, 2, 4, 7, 9], short: "Maj pent" },
+    "Minor Pentatonic": { category: "Pentatonic & blues", intervals: [0, 3, 5, 7, 10], short: "Min pent" },
+    "Blues Scale": { category: "Pentatonic & blues", intervals: [0, 3, 5, 6, 7, 10], short: "Blues" },
+    "Major Blues": { category: "Pentatonic & blues", intervals: [0, 2, 3, 4, 7, 9], short: "Maj blues" },
+    "Egyptian / Suspended Pent": { category: "Pentatonic & blues", intervals: [0, 2, 5, 7, 10], short: "Egypt" },
+    "Hirajoshi": { category: "Pentatonic & blues", intervals: [0, 2, 3, 7, 8], short: "Hirajoshi" },
+
+    // Symmetric
+    "Whole Tone": { category: "Symmetric", intervals: [0, 2, 4, 6, 8, 10], short: "WT" },
+    "Diminished (W/H)": { category: "Symmetric", intervals: [0, 2, 3, 5, 6, 8, 9, 11], short: "Dim WH" },
+    "Diminished (H/W)": { category: "Symmetric", intervals: [0, 1, 3, 4, 6, 7, 9, 10], short: "Dim HW" },
+    Chromatic: { category: "Symmetric", intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], short: "Chrom" },
+    Augmented: { category: "Symmetric", intervals: [0, 3, 4, 7, 8, 11], short: "Aug sc" },
+
+    // Bebop & jazz
+    "Bebop Dominant": { category: "Bebop & jazz", intervals: [0, 2, 4, 5, 7, 9, 10, 11], short: "Bebop Dom" },
+    "Bebop Major": { category: "Bebop & jazz", intervals: [0, 2, 4, 5, 7, 8, 9, 11], short: "Bebop Maj" },
+    "Bebop Dorian": { category: "Bebop & jazz", intervals: [0, 2, 3, 4, 5, 7, 9, 10], short: "Bebop Dor" },
+    "Bebop Melodic Minor": { category: "Bebop & jazz", intervals: [0, 2, 3, 5, 7, 8, 9, 11], short: "Bebop Mel" },
+
+    // World / exotic
+    "Phrygian Dominant": { category: "World & exotic", intervals: [0, 1, 4, 5, 7, 8, 10], short: "Phry Dom" },
+    "Hungarian Minor": { category: "World & exotic", intervals: [0, 2, 3, 6, 7, 8, 11], short: "Hung min" },
+    "Double Harmonic": { category: "World & exotic", intervals: [0, 1, 4, 5, 7, 8, 11], short: "Dbl harm" },
+    "Neapolitan Minor": { category: "World & exotic", intervals: [0, 1, 3, 5, 7, 8, 11], short: "Neap min" },
+    "Neapolitan Major": { category: "World & exotic", intervals: [0, 1, 3, 5, 7, 9, 11], short: "Neap maj" },
+    Enigmatic: { category: "World & exotic", intervals: [0, 1, 4, 6, 8, 10, 11], short: "Enigmatic" },
+    Persian: { category: "World & exotic", intervals: [0, 1, 4, 5, 6, 8, 11], short: "Persian" },
+  };
+
+  const LAYOUTS = {
+    "4x4": {
+      id: "4x4",
+      cols: 4,
+      rows: 4,
+      pads: 16,
+      brand: "16",
+      label: "4×4 · 16 pads",
+      devices: "MPD218, MPC pads, and similar",
+    },
+    "2x4": {
+      id: "2x4",
+      cols: 4,
+      rows: 2,
+      pads: 8,
+      brand: "8",
+      label: "2×4 · 8 pads",
+      devices: "LPD8, nanoPAD, and similar",
+    },
+  };
+
+  const STORAGE_KEY = "isopadstudio.songs.v1";
+  const ACTIVE_KEY = "isopadstudio.activeSongId";
+  const LAYOUT_KEY = "isopadstudio.layout";
+  const PADMAP_KEY = "isopadstudio.padMaps.v1";
+  const LEGACY_KEYS = {
+    songs: ["chromapad.songs.v1", "mpc16chords.songs.v1"],
+    active: ["chromapad.activeSongId", "mpc16chords.activeSongId"],
+    layout: ["chromapad.layout"],
+    padMaps: ["chromapad.padMaps.v1"],
+  };
+  const M = globalThis.IsoPadMusic;
+  if (!M) {
+    throw new Error("IsoPadMusic failed to load — include lib/music.js before app.js");
+  }
+
+  const {
+    midiToLabel,
+    labelToMidi,
+    midiParts,
+    defaultPadMap,
+    normalizePadMap,
+    getActivePads: resolveActivePads,
+    sortPadsByPitch: sortPadsByPitchOnMap,
+    midiToFreq,
+    DEFAULT_START_MIDI,
+  } = M;
+
+  const OCTAVES = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+  function loadSavedLayout() {
+    const raw = localStorage.getItem(LAYOUT_KEY) || LEGACY_KEYS.layout.map((k) => localStorage.getItem(k)).find(Boolean);
+    return LAYOUTS[raw] ? raw : "4x4";
+  }
+
+  function currentLayout() {
+    return LAYOUTS[state.layout] || LAYOUTS["4x4"];
+  }
+
+  function padCount() {
+    return currentLayout().pads;
+  }
+
+  function loadPadMaps() {
+    try {
+      let raw = localStorage.getItem(PADMAP_KEY);
+      if (!raw) {
+        for (const key of LEGACY_KEYS.padMaps) {
+          raw = localStorage.getItem(key);
+          if (raw) break;
+        }
+      }
+      const parsed = JSON.parse(raw || "{}");
+      return {
+        "4x4": normalizePadMap(parsed["4x4"], "4x4"),
+        "2x4": normalizePadMap(parsed["2x4"], "2x4"),
+      };
+    } catch {
+      return { "4x4": defaultPadMap("4x4"), "2x4": defaultPadMap("2x4") };
+    }
+  }
+
+  function persistPadMaps() {
+    localStorage.setItem(PADMAP_KEY, JSON.stringify(state.padMaps));
+  }
+
+  function getPadMap() {
+    return state.padMaps[state.layout];
+  }
+
+  // --- Audio ---
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playTone(padIndex, when, duration, opts = {}) {
+    const ctx = ensureAudio();
+    const map = getPadMap();
+    const transpose = opts.transpose ?? Number(document.getElementById("player-transpose")?.value || 0);
+    const wave = opts.wave ?? (document.getElementById("player-wave")?.value || "triangle");
+    const midi = (map[padIndex] ?? 60) + transpose;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    osc.type = wave;
+    osc.frequency.value = midiToFreq(midi);
+    filter.type = "lowpass";
+    filter.frequency.value = 2400;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    const peak = opts.peak ?? 0.18;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(peak, when + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+
+    osc.start(when);
+    osc.stop(when + duration + 0.02);
+  }
+
+  function sortPadsByPitch(pads) {
+    return sortPadsByPitchOnMap(pads, getPadMap());
+  }
+
+  function playPads(pads, { sequential = false, noteDur = 0.45, gap = 0.28, chordDur = 1.6 } = {}) {
+    const ctx = ensureAudio();
+    const now = ctx.currentTime + 0.02;
+    const ordered = sequential ? sortPadsByPitch(pads) : [...pads];
+    if (sequential) {
+      ordered.forEach((pad, i) => playTone(pad, now + i * gap, noteDur));
+    } else {
+      ordered.forEach((pad) => playTone(pad, now, chordDur));
+    }
+  }
+
+  // --- Music helpers ---
+  function getDict(kind) {
+    return kind === "scale" ? SCALES : CHORDS;
+  }
+
+  function categoriesFor(kind) {
+    const dict = getDict(kind);
+    const set = new Set(Object.values(dict).map((x) => x.category));
+    return ["All", ...set];
+  }
+
+  function formulasInCategory(kind, category) {
+    const dict = getDict(kind);
+    return Object.entries(dict)
+      .filter(([, v]) => category === "All" || v.category === category)
+      .map(([name, v]) => ({ name, ...v }));
+  }
+
+  function getActivePads(root, intervals, opts = {}) {
+    return resolveActivePads(root, intervals, getPadMap(), opts);
+  }
+
+  function noteNamesForPads(pads) {
+    const map = getPadMap();
+    return pads.map((p) => midiToLabel(map[p] ?? 60));
+  }
+
+  function formatShort(root, short) {
+    // Scales / modes get a space; chord symbols glue to the root
+    const scaleLike =
+      /Ionian|Dorian|Phrygian|Lydian|Mixo|Aeolian|Locrian|Harm|Mel|Alt|Bebop|Blues|pent|Egypt|Hirajoshi|WT|Dim |Chrom|Aug sc|Hung|Neap|Pers|Enigmatic|Dbl|Dor |Lyd|Mix |Loc |Phry|Super/i.test(
+        short
+      );
+    if (scaleLike) return `${root} ${short}`;
+    return `${root}${short}`;
+  }
+
+  function displayTitle(root, entryName, entry) {
+    if (entry.short) return formatShort(root, entry.short);
+    return `${root} ${entryName}`;
+  }
+
+  const PROGRESSIONS =
+    window.ISOPAD_PROGRESSIONS || window.CHROMAPAD_PROGRESSIONS || window.MPC16_PROGRESSIONS || [];
+
+  function progressionGenres() {
+    const set = new Set(PROGRESSIONS.map((p) => p.genre));
+    return ["All", ...set];
+  }
+
+  function resolveProgressionBars(prog, key) {
+    const keyIndex = NOTES.indexOf(key);
+    const colorMap = new Map();
+    let colorIdx = 0;
+    return prog.chords.map((c) => {
+      const root = NOTES[(keyIndex + c.o + 120) % 12];
+      const entry = CHORDS[c.q];
+      if (!entry) {
+        console.warn("Unknown chord quality:", c.q);
+        return null;
+      }
+      const uniq = `${root}|${c.q}`;
+      if (!colorMap.has(uniq)) {
+        colorMap.set(uniq, COLORS[colorIdx % COLORS.length].hex);
+        colorIdx += 1;
+      }
+      const { pads, primaryPads, rootIndex } = getActivePads(root, entry.intervals);
+      return {
+        title: displayTitle(root, c.q, entry),
+        pads,
+        primaryPads,
+        color: colorMap.get(uniq),
+        rootIndex,
+        isScale: false,
+        root,
+        formula: c.q,
+        kind: "chord",
+      };
+    }).filter(Boolean);
+  }
+
+  function uniqueChordLabels(bars) {
+    const seen = [];
+    const set = new Set();
+    bars.forEach((b) => {
+      if (!set.has(b.title)) {
+        set.add(b.title);
+        seen.push({ title: b.title, color: b.color });
+      }
+    });
+    return seen;
+  }
+
+  // --- State ---
+  const state = {
+    layout: loadSavedLayout(),
+    padMaps: loadPadMaps(),
+    kind: "chord",
+    category: "All",
+    formula: "Major 7",
+    root: "C",
+    color: COLORS[0].hex,
+    songs: [],
+    activeSongId: null,
+    showAllRoots: false,
+    progKey: "C",
+    progGenre: "All",
+    progSearch: "",
+  };
+
+  function loadSongs() {
+    try {
+      let raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        for (const key of LEGACY_KEYS.songs) {
+          raw = localStorage.getItem(key);
+          if (raw) break;
+        }
+      }
+      const parsed = JSON.parse(raw || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function persistSongs() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.songs));
+    if (state.activeSongId) localStorage.setItem(ACTIVE_KEY, state.activeSongId);
+  }
+
+  function persistLayout() {
+    localStorage.setItem(LAYOUT_KEY, state.layout);
+  }
+
+  state.songs = loadSongs();
+  state.activeSongId =
+    localStorage.getItem(ACTIVE_KEY) ||
+    LEGACY_KEYS.active.map((k) => localStorage.getItem(k)).find(Boolean) ||
+    null;
+
+  function activeSong() {
+    return state.songs.find((s) => s.id === state.activeSongId) || null;
+  }
+
+  function uid() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return `s-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function ensureActiveSong() {
+    if (activeSong()) return activeSong();
+    const song = {
+      id: uid(),
+      name: "Untitled Song",
+      bars: [],
+      overlay: { root: "C", formula: "Major / Ionian", enabled: false },
+    };
+    state.songs.push(song);
+    state.activeSongId = song.id;
+    persistSongs();
+    return song;
+  }
+
+  // --- DOM helpers ---
+  function el(tag, attrs = {}, children = []) {
+    const node = document.createElement(tag);
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k === "class") node.className = v;
+      else if (k === "style" && typeof v === "object") Object.assign(node.style, v);
+      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (k === "html") node.innerHTML = v;
+      else if (v === false || v == null) return;
+      else node.setAttribute(k, v === true ? "" : String(v));
+    });
+    (Array.isArray(children) ? children : [children]).forEach((c) => {
+      if (c == null || c === false) return;
+      node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return node;
+  }
+
+  function buildGrid(pads, color, {
+    rootIndex = null,
+    primaryPads = [],
+    interactive = false,
+    onPad = null,
+    size = "normal",
+  } = {}) {
+    const layout = currentLayout();
+    const map = getPadMap();
+    const primarySet = new Set(primaryPads);
+    const grid = el("div", {
+      class: `${size === "big" ? "big-grid" : "grid"} rows-${layout.rows}`,
+    });
+    for (let row = layout.rows - 1; row >= 0; row--) {
+      for (let col = 0; col < layout.cols; col++) {
+        const padIndex = row * layout.cols + col;
+        const on = pads.includes(padIndex);
+        const primary = primarySet.has(padIndex);
+        const pad = el(
+          "div",
+          {
+            class: `pad${on ? " on" : ""}${primary ? " primary" : ""}${rootIndex === padIndex ? " root-mark" : ""}`,
+            style: on ? { background: color, boxShadow: `0 0 14px ${hexToRgba(color, 0.45)}` } : {},
+            title: primary
+              ? `Pad ${padIndex + 1} · primary chord tone`
+              : `Pad ${padIndex + 1}`,
+            ...(interactive
+              ? {
+                  onClick: (e) => onPad && onPad(padIndex, e),
+                }
+              : {}),
+          },
+          midiToLabel(map[padIndex] ?? 60)
+        );
+        if (interactive) pad.dataset.pad = String(padIndex);
+        grid.appendChild(pad);
+      }
+    }
+    return grid;
+  }
+
+  function hexToRgba(hex, a) {
+    const h = hex.replace("#", "");
+    const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function makeCard({ title, pads, primaryPads = [], color, rootIndex, isScale, actions, barNum, onPlay }) {
+    const playPadsList = isScale
+      ? pads
+      : primaryPads.length
+        ? primaryPads
+        : pads;
+    const notes = noteNamesForPads(playPadsList).join(" · ");
+    const card = el("div", {
+      class: "card clickable song-card",
+      onClick: (e) => {
+        if (e.target.closest("button")) return;
+        onPlay(playPadsList);
+      },
+    });
+    if (barNum != null) card.appendChild(el("span", { class: "bar-num" }, String(barNum)));
+    card.appendChild(
+      el("div", { class: "card-title", style: { color } }, [
+        el("span", {}, title),
+        el("span", { class: "notes" }, notes),
+      ])
+    );
+    card.appendChild(buildGrid(pads, color, { rootIndex, primaryPads: isScale ? [] : primaryPads }));
+    if (actions) card.appendChild(actions);
+    return card;
+  }
+
+  // --- Render: Library ---
+  function fillRootSelect(select) {
+    select.innerHTML = "";
+    NOTES.forEach((n) => {
+      const opt = el("option", { value: n }, n);
+      if (n === state.root) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  function renderColorRow(container, selected, onPick) {
+    container.innerHTML = "";
+    COLORS.forEach((c) => {
+      container.appendChild(
+        el("button", {
+          type: "button",
+          class: `swatch${selected === c.hex ? " selected" : ""}`,
+          style: { background: c.hex },
+          title: c.id,
+          onClick: () => onPick(c.hex),
+        })
+      );
+    });
+  }
+
+  function renderLibraryChrome() {
+    const catSelect = document.getElementById("category-select");
+    const cats = categoriesFor(state.kind);
+    if (!cats.includes(state.category)) state.category = "All";
+    catSelect.innerHTML = "";
+    cats.forEach((c) => {
+      const opt = el("option", { value: c }, c);
+      if (c === state.category) opt.selected = true;
+      catSelect.appendChild(opt);
+    });
+
+    const chips = document.getElementById("category-chips");
+    chips.innerHTML = "";
+    cats.forEach((c) => {
+      chips.appendChild(
+        el(
+          "button",
+          {
+            type: "button",
+            class: `chip${c === state.category ? " active" : ""}`,
+            onClick: () => {
+              state.category = c;
+              const list = formulasInCategory(state.kind, state.category);
+              if (!list.find((x) => x.name === state.formula)) state.formula = list[0]?.name;
+              renderLibrary();
+            },
+          },
+          c
+        )
+      );
+    });
+
+    renderColorRow(document.getElementById("library-colors"), state.color, (hex) => {
+      state.color = hex;
+      renderLibrary();
+    });
+  }
+
+  function renderLibrary() {
+    renderLibraryChrome();
+    const list = formulasInCategory(state.kind, state.category);
+    if (!list.find((x) => x.name === state.formula) && list[0]) state.formula = list[0].name;
+
+    const formulaList = document.getElementById("formula-list");
+    formulaList.innerHTML = "";
+    list.forEach((item) => {
+      formulaList.appendChild(
+        el(
+          "button",
+          {
+            type: "button",
+            class: `formula-item${item.name === state.formula ? " active" : ""}`,
+            onClick: () => {
+              state.formula = item.name;
+              renderLibrary();
+            },
+          },
+          [el("span", {}, item.name), el("span", { class: "badge" }, item.short || "")]
+        )
+      );
+    });
+
+    const entry = getDict(state.kind)[state.formula];
+    const { pads, primaryPads, missing, rootIndex } = getActivePads(state.root, entry.intervals, {
+      fillBoard: state.kind === "scale",
+    });
+    const title = displayTitle(state.root, state.formula, entry);
+    const preview = document.getElementById("library-preview");
+    preview.innerHTML = "";
+    preview.appendChild(
+      makeCard({
+        title,
+        pads,
+        primaryPads,
+        color: state.color,
+        rootIndex,
+        isScale: state.kind === "scale",
+        onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
+      })
+    );
+
+    const hint = document.getElementById("fit-hint");
+    if (missing.length) {
+      hint.textContent = `Missing on this pad map: ${missing.join(", ")}. Assign those notes in the Pads tab, or pick a different root.`;
+    } else {
+      hint.textContent = state.kind === "scale"
+        ? "Every pad whose note is in the scale is lit (using your Pads map). Click to hear ascending by pitch. Root pad is outlined."
+        : "All chord-tone pads are lit. Bright border = primary voicing (first instance of each tone). Click to hear that voicing.";
+    }
+
+    const gallery = document.getElementById("all-roots-gallery");
+    if (state.showAllRoots) {
+      gallery.hidden = false;
+      gallery.innerHTML = "";
+      NOTES.forEach((root) => {
+        const data = getActivePads(root, entry.intervals, { fillBoard: state.kind === "scale" });
+        if (!data.pads.length) return;
+        gallery.appendChild(
+          makeCard({
+            title: displayTitle(root, state.formula, entry),
+            pads: data.pads,
+            primaryPads: data.primaryPads,
+            color: state.color,
+            rootIndex: data.rootIndex,
+            isScale: state.kind === "scale",
+            onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
+          })
+        );
+      });
+    } else {
+      gallery.hidden = true;
+      gallery.innerHTML = "";
+    }
+
+    // Keep pad player ref in sync
+    renderPlayerRef();
+  }
+
+  // --- Song ---
+  function refreshSongSelect() {
+    const sel = document.getElementById("song-select");
+    sel.innerHTML = "";
+    if (!state.songs.length) {
+      sel.appendChild(el("option", { value: "" }, "— none —"));
+      return;
+    }
+    state.songs.forEach((s) => {
+      const opt = el("option", { value: s.id }, s.name);
+      if (s.id === state.activeSongId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function renderOverlayControls() {
+    const rootSel = document.getElementById("overlay-root");
+    const formSel = document.getElementById("overlay-formula");
+    fillRootSelect(rootSel);
+    const song = activeSong();
+    if (song?.overlay?.root) rootSel.value = song.overlay.root;
+
+    formSel.innerHTML = "";
+    formSel.appendChild(el("option", { value: "" }, "— no overlay —"));
+    Object.keys(SCALES).forEach((name) => {
+      const opt = el("option", { value: name }, name);
+      if (song?.overlay?.formula === name && song.overlay.enabled) opt.selected = true;
+      formSel.appendChild(opt);
+    });
+    if (!song?.overlay?.enabled) formSel.value = "";
+  }
+
+  function renderSong() {
+    refreshSongSelect();
+    renderOverlayControls();
+    const song = activeSong();
+    document.getElementById("song-name").value = song?.name || "";
+
+    const strip = document.getElementById("song-strip");
+    strip.innerHTML = "";
+    if (!song || !song.bars.length) {
+      strip.appendChild(
+        el("p", { class: "empty-state", html: 'No chords yet. Browse the Library and hit <strong>Add to Song</strong>.' })
+      );
+    } else {
+      song.bars.forEach((bar, index) => {
+        const actions = el("div", { class: "song-card-actions" }, [
+          el("button", {
+            type: "button",
+            class: "btn",
+            onClick: () => moveBar(index, -1),
+          }, "←"),
+          el("button", {
+            type: "button",
+            class: "btn",
+            onClick: () => moveBar(index, 1),
+          }, "→"),
+          el("button", {
+            type: "button",
+            class: "btn danger",
+            onClick: () => removeBar(index),
+          }, "✕"),
+        ]);
+        strip.appendChild(
+          makeCard({
+            title: bar.title,
+            pads: bar.pads,
+            primaryPads: bar.primaryPads || [],
+            color: bar.color,
+            rootIndex: bar.rootIndex ?? null,
+            isScale: !!bar.isScale,
+            barNum: index + 1,
+            actions,
+            onPlay: (list) => playPads(list, { sequential: !!bar.isScale }),
+          })
+        );
+      });
+    }
+
+    // Overlay
+    const overlayBox = document.getElementById("overlay-preview");
+    if (song?.overlay?.enabled && song.overlay.formula) {
+      const entry = SCALES[song.overlay.formula];
+      const { pads, primaryPads, rootIndex } = getActivePads(song.overlay.root, entry.intervals, { fillBoard: true });
+      overlayBox.hidden = false;
+      overlayBox.innerHTML = "";
+      overlayBox.appendChild(el("div", { class: "hint", style: { marginBottom: "10px" } }, "Scale overlay (shown with song)"));
+      overlayBox.appendChild(
+        makeCard({
+          title: displayTitle(song.overlay.root, song.overlay.formula, entry),
+          pads,
+          primaryPads,
+          color: "#3db8ff",
+          rootIndex,
+          isScale: true,
+          onPlay: (list) => playPads(list, { sequential: true }),
+        })
+      );
+    } else {
+      overlayBox.hidden = true;
+      overlayBox.innerHTML = "";
+    }
+
+    // Legend of colors used
+    const legend = document.getElementById("song-legend");
+    legend.innerHTML = "";
+    if (song?.bars?.length) {
+      const seen = new Map();
+      song.bars.forEach((b) => {
+        if (!seen.has(b.color)) seen.set(b.color, b.title);
+      });
+      seen.forEach((title, color) => {
+        legend.appendChild(
+          el("div", { class: "legend-item" }, [
+            el("span", { class: "legend-dot", style: { background: color } }),
+            el("span", {}, title.split(" ")[0] || title),
+          ])
+        );
+      });
+    }
+  }
+
+  function moveBar(index, dir) {
+    const song = activeSong();
+    if (!song) return;
+    const j = index + dir;
+    if (j < 0 || j >= song.bars.length) return;
+    const tmp = song.bars[index];
+    song.bars[index] = song.bars[j];
+    song.bars[j] = tmp;
+    persistSongs();
+    renderSong();
+  }
+
+  function removeBar(index) {
+    const song = activeSong();
+    if (!song) return;
+    song.bars.splice(index, 1);
+    persistSongs();
+    renderSong();
+  }
+
+  function addCurrentToSong() {
+    const song = ensureActiveSong();
+    const entry = getDict(state.kind)[state.formula];
+    const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
+      fillBoard: state.kind === "scale",
+    });
+    song.bars.push({
+      title: displayTitle(state.root, state.formula, entry),
+      pads,
+      primaryPads,
+      color: state.color,
+      rootIndex,
+      isScale: state.kind === "scale",
+      root: state.root,
+      formula: state.formula,
+      kind: state.kind,
+    });
+    persistSongs();
+    // brief feedback via button text
+    const btn = document.getElementById("btn-add-song");
+    const prev = btn.textContent;
+    btn.textContent = "Added ✓";
+    setTimeout(() => (btn.textContent = prev), 900);
+  }
+
+  function playProgression() {
+    const song = activeSong();
+    if (!song?.bars?.length) return;
+    const ctx = ensureAudio();
+    let t = ctx.currentTime + 0.05;
+    song.bars.forEach((bar) => {
+      if (bar.isScale) {
+        const sorted = sortPadsByPitch(bar.pads);
+        sorted.forEach((pad, i) => playTone(pad, t + i * 0.22, 0.35));
+        t += sorted.length * 0.22 + 0.15;
+      } else {
+        const voicing = bar.primaryPads?.length ? bar.primaryPads : bar.pads;
+        voicing.forEach((pad) => playTone(pad, t, 1.1));
+        t += 1.25;
+      }
+    });
+  }
+
+  // --- Pad player ---
+  function renderPlayer() {
+    const gridHost = document.getElementById("player-grid");
+    if (!gridHost) return;
+    const grid = buildGrid([], "#555", {
+      size: "big",
+      interactive: true,
+      onPad: (padIndex) => {
+        playTone(padIndex, ensureAudio().currentTime, 0.55, { peak: 0.22 });
+        flashPad(padIndex);
+      },
+    });
+    grid.id = "player-grid";
+    gridHost.replaceWith(grid);
+    const side = document.querySelector(".player-side p");
+    if (side) {
+      const map = getPadMap();
+      side.textContent = `${currentLayout().label} — notes come from your Pads map (Pad 1 = ${midiToLabel(map[0])}). Edit them in the Pads tab.`;
+    }
+    renderPlayerRef();
+  }
+
+  function reresolveBar(bar) {
+    if (bar.root && bar.formula && bar.kind) {
+      const entry = getDict(bar.kind)[bar.formula];
+      if (entry) {
+        const { pads, primaryPads, rootIndex } = getActivePads(bar.root, entry.intervals, {
+          fillBoard: bar.kind === "scale" || !!bar.isScale,
+        });
+        return { ...bar, pads, primaryPads, rootIndex };
+      }
+    }
+    return {
+      ...bar,
+      pads: (bar.pads || []).filter((p) => p < padCount()),
+      primaryPads: (bar.primaryPads || []).filter((p) => p < padCount()),
+    };
+  }
+
+  function reresolveSongsForLayout() {
+    state.songs.forEach((song) => {
+      song.bars = (song.bars || []).map(reresolveBar);
+    });
+    persistSongs();
+  }
+
+  function updateLayoutChrome() {
+    const layout = currentLayout();
+    const mark = document.querySelector(".brand-mark");
+    if (mark) mark.textContent = layout.brand;
+    document.querySelectorAll(".layout-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.layout === state.layout);
+    });
+    const footer = document.querySelector(".footer p");
+    if (footer) {
+      const map = getPadMap();
+      footer.textContent = `${currentLayout().label} · Pad 1 = ${midiToLabel(map[0])} (editable in Pads) · songs & maps save in localStorage · serve over HTTP.`;
+    }
+    document.body.dataset.layout = layout.id;
+  }
+
+  function refreshAfterPadMapChange() {
+    reresolveSongsForLayout();
+    updateLayoutChrome();
+    renderLibrary();
+    renderProgressions();
+    renderSong();
+    renderPlayer();
+  }
+
+  function setPadMidi(padIndex, midi) {
+    const map = getPadMap();
+    map[padIndex] = Math.max(0, Math.min(127, midi));
+    persistPadMaps();
+    refreshAfterPadMapChange();
+
+    const cell = document.querySelector(`[data-pad-edit="${padIndex}"]`);
+    if (!cell) return;
+    cell.classList.toggle("middle-c", midi === 60);
+    const midiLabel = cell.querySelector(".pad-edit-midi");
+    if (midiLabel) midiLabel.textContent = midiToLabel(midi);
+    const labelRow = cell.querySelector(".pad-edit-label");
+    if (labelRow) {
+      labelRow.innerHTML = "";
+      labelRow.appendChild(el("span", {}, `Pad ${padIndex + 1}`));
+      if (midi === 60) labelRow.appendChild(el("span", { class: "middle-c-tag" }, "middle C"));
+    }
+  }
+
+  function resetPadMapChromatic(startMidi = DEFAULT_START_MIDI) {
+    const layoutId = state.layout;
+    state.padMaps[layoutId] = Array.from(
+      { length: LAYOUTS[layoutId].pads },
+      (_, i) => startMidi + i
+    );
+    persistPadMaps();
+    refreshAfterPadMapChange();
+    renderPadsEditor();
+  }
+
+  function renderPadsEditor() {
+    const host = document.getElementById("pads-editor");
+    if (!host) return;
+    const layout = currentLayout();
+    const map = getPadMap();
+    host.innerHTML = "";
+
+    const grid = el("div", { class: `pads-editor-grid rows-${layout.rows}` });
+    for (let row = layout.rows - 1; row >= 0; row--) {
+      for (let col = 0; col < layout.cols; col++) {
+        const padIndex = row * layout.cols + col;
+        const midi = map[padIndex];
+        const parts = midiParts(midi);
+        const isMiddleC = midi === 60;
+
+        const noteSel = el("select", {
+          class: "pad-note-select",
+          "aria-label": `Pad ${padIndex + 1} note`,
+          onChange: (e) => {
+            const wrap = e.target.closest("[data-pad-edit]");
+            const oct = Number(wrap.querySelector(".pad-octave-select").value);
+            setPadMidi(padIndex, labelToMidi(e.target.value, oct));
+          },
+        });
+        NOTES.forEach((n) => {
+          const opt = el("option", { value: n }, n);
+          if (n === parts.note) opt.selected = true;
+          noteSel.appendChild(opt);
+        });
+
+        const octSel = el("select", {
+          class: "pad-octave-select",
+          "aria-label": `Pad ${padIndex + 1} octave`,
+          onChange: (e) => {
+            const wrap = e.target.closest("[data-pad-edit]");
+            const note = wrap.querySelector(".pad-note-select").value;
+            setPadMidi(padIndex, labelToMidi(note, e.target.value));
+          },
+        });
+        OCTAVES.forEach((o) => {
+          const opt = el("option", { value: String(o) }, String(o));
+          if (o === parts.octave) opt.selected = true;
+          octSel.appendChild(opt);
+        });
+
+        const cell = el("div", {
+          class: `pad-edit-cell${isMiddleC ? " middle-c" : ""}`,
+          "data-pad-edit": String(padIndex),
+        }, [
+          el("div", { class: "pad-edit-label" }, [
+            el("span", {}, `Pad ${padIndex + 1}`),
+            isMiddleC ? el("span", { class: "middle-c-tag" }, "middle C") : null,
+          ]),
+          el("div", { class: "pad-edit-controls" }, [noteSel, octSel]),
+          el("div", { class: "pad-edit-midi" }, midiToLabel(midi)),
+          el(
+            "button",
+            {
+              type: "button",
+              class: "btn ghost pad-audition",
+              onClick: () => playTone(padIndex, ensureAudio().currentTime, 0.45, { peak: 0.22 }),
+            },
+            "▶"
+          ),
+        ]);
+        grid.appendChild(cell);
+      }
+    }
+    host.appendChild(grid);
+  }
+
+  function setLayout(layoutId) {
+    if (!LAYOUTS[layoutId] || state.layout === layoutId) return;
+    state.layout = layoutId;
+    persistLayout();
+    reresolveSongsForLayout();
+    updateLayoutChrome();
+    renderLibrary();
+    renderProgressions();
+    renderSong();
+    renderPlayer();
+    renderPadsEditor();
+  }
+
+  function flashPad(padIndex) {
+    const pad = document.querySelector(`#player-grid [data-pad="${padIndex}"]`);
+    if (!pad) return;
+    pad.classList.add("playing");
+    pad.style.background = state.color;
+    pad.style.color = "#fff";
+    setTimeout(() => {
+      pad.classList.remove("playing");
+      // restore from library highlight if any
+      renderPlayerHighlight();
+    }, 180);
+  }
+
+  function renderPlayerRef() {
+    const host = document.getElementById("player-chord-ref");
+    if (!host) return;
+    const entry = getDict(state.kind)[state.formula];
+    if (!entry) {
+      host.innerHTML = "";
+      return;
+    }
+    const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
+      fillBoard: state.kind === "scale",
+    });
+    host.innerHTML = "";
+    host.appendChild(el("p", { class: "hint" }, `Library selection: ${displayTitle(state.root, state.formula, entry)}`));
+    host.appendChild(
+      makeCard({
+        title: displayTitle(state.root, state.formula, entry),
+        pads,
+        primaryPads,
+        color: state.color,
+        rootIndex,
+        isScale: state.kind === "scale",
+        onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
+      })
+    );
+    renderPlayerHighlight();
+  }
+
+  function renderPlayerHighlight() {
+    const entry = getDict(state.kind)[state.formula];
+    if (!entry) return;
+    const { pads, primaryPads } = getActivePads(state.root, entry.intervals, {
+      fillBoard: state.kind === "scale",
+    });
+    const primarySet = new Set(state.kind === "scale" ? [] : primaryPads);
+    document.querySelectorAll("#player-grid .pad").forEach((pad) => {
+      const idx = Number(pad.dataset.pad);
+      const on = pads.includes(idx);
+      const primary = primarySet.has(idx);
+      pad.classList.toggle("on", on);
+      pad.classList.toggle("primary", primary);
+      if (on) {
+        pad.style.background = state.color;
+        pad.style.boxShadow = `0 0 14px ${hexToRgba(state.color, 0.45)}`;
+        pad.style.color = "#fff";
+      } else {
+        pad.style.background = "";
+        pad.style.boxShadow = "";
+        pad.style.color = "";
+      }
+    });
+  }
+
+  // --- Tabs ---
+  function switchTab(name) {
+    document.querySelectorAll(".tab").forEach((t) => {
+      const on = t.dataset.tab === name;
+      t.classList.toggle("active", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.querySelectorAll(".panel").forEach((p) => {
+      const on = p.id === `panel-${name}`;
+      p.classList.toggle("active", on);
+      p.hidden = !on;
+    });
+    if (name === "song") renderSong();
+    if (name === "progressions") renderProgressions();
+    if (name === "pads") renderPadsEditor();
+    if (name === "play") {
+      renderPlayerHighlight();
+      renderPlayerRef();
+    }
+  }
+
+  function filteredProgressions() {
+    const q = state.progSearch.trim().toLowerCase();
+    return PROGRESSIONS.filter((p) => {
+      if (state.progGenre !== "All" && p.genre !== state.progGenre) return false;
+      if (!q) return true;
+      const hay = `${p.name} ${p.aka || ""} ${p.genre} ${p.numerals}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function renderProgressions() {
+    const keySel = document.getElementById("prog-key");
+    const genreSel = document.getElementById("prog-genre");
+    const chips = document.getElementById("prog-genre-chips");
+    const list = document.getElementById("prog-list");
+    const count = document.getElementById("prog-count");
+    if (!keySel || !list) return;
+
+    if (!keySel.options.length) {
+      NOTES.forEach((n) => keySel.appendChild(el("option", { value: n }, n)));
+    }
+    keySel.value = state.progKey;
+
+    const genres = progressionGenres();
+    genreSel.innerHTML = "";
+    genres.forEach((g) => {
+      const opt = el("option", { value: g }, g);
+      if (g === state.progGenre) opt.selected = true;
+      genreSel.appendChild(opt);
+    });
+
+    chips.innerHTML = "";
+    genres.forEach((g) => {
+      chips.appendChild(
+        el(
+          "button",
+          {
+            type: "button",
+            class: `chip${g === state.progGenre ? " active" : ""}`,
+            onClick: () => {
+              state.progGenre = g;
+              renderProgressions();
+            },
+          },
+          g === "All" ? `All (${PROGRESSIONS.length})` : g
+        )
+      );
+    });
+
+    const items = filteredProgressions();
+    count.textContent = `Showing ${items.length} progression${items.length === 1 ? "" : "s"} in key of ${state.progKey}. Same chord types share a color when loaded.`;
+
+    list.innerHTML = "";
+    if (!items.length) {
+      list.appendChild(el("p", { class: "empty-state" }, "No progressions match that filter."));
+      return;
+    }
+
+    items.forEach((prog) => {
+      const bars = resolveProgressionBars(prog, state.progKey);
+      const uniques = uniqueChordLabels(bars);
+      const card = el("article", { class: "prog-card" });
+      const main = el("div", { class: "prog-card-main" }, [
+        el("div", { class: "prog-card-top" }, [
+          el("h3", {}, prog.name),
+          el("span", { class: "prog-genre-tag" }, prog.genre),
+        ]),
+        prog.aka ? el("p", { class: "prog-aka" }, prog.aka) : null,
+        el("p", { class: "prog-numerals" }, prog.numerals),
+        el(
+          "div",
+          { class: "prog-preview-chords" },
+          uniques.map((u) =>
+            el("span", { class: "prog-chip", style: { background: u.color } }, u.title)
+          )
+        ),
+      ]);
+      const actions = el("div", { class: "prog-actions" }, [
+        el(
+          "button",
+          {
+            type: "button",
+            class: "btn primary",
+            onClick: () => loadProgression(prog, false),
+          },
+          "Load into Song"
+        ),
+        el(
+          "button",
+          {
+            type: "button",
+            class: "btn",
+            onClick: () => loadProgression(prog, true),
+          },
+          "Append to Song"
+        ),
+        el(
+          "button",
+          {
+            type: "button",
+            class: "btn ghost",
+            onClick: () => playProgressionBars(bars),
+          },
+          "▶ Preview"
+        ),
+      ]);
+      card.appendChild(main);
+      card.appendChild(actions);
+      list.appendChild(card);
+    });
+  }
+
+  function playProgressionBars(bars) {
+    if (!bars.length) return;
+    const ctx = ensureAudio();
+    let t = ctx.currentTime + 0.05;
+    bars.forEach((bar) => {
+      const voicing = bar.primaryPads?.length ? bar.primaryPads : bar.pads;
+      voicing.forEach((pad) => playTone(pad, t, 0.85));
+      t += 0.95;
+    });
+  }
+
+  function loadProgression(prog, append) {
+    const bars = resolveProgressionBars(prog, state.progKey);
+    const song = ensureActiveSong();
+    const name = `${prog.name} (${state.progKey})`;
+    if (!append) {
+      song.bars = bars;
+      song.name = name;
+      document.getElementById("song-name").value = name;
+    } else {
+      song.bars = song.bars.concat(bars);
+      if (!song.name || song.name === "Untitled Song" || song.name === "New Song") {
+        song.name = name;
+        document.getElementById("song-name").value = name;
+      }
+    }
+    // Sensible scale overlay for major vs minor-leaning forms
+    const minorLean = /minor|aeolian|andalusian|phrygian|metal|neo-soul|i–|i7|im/i.test(
+      `${prog.name} ${prog.numerals} ${prog.aka || ""}`
+    );
+    song.overlay = {
+      root: state.progKey,
+      formula: minorLean ? "Natural Minor / Aeolian" : "Major / Ionian",
+      enabled: true,
+    };
+    persistSongs();
+    switchTab("song");
+    renderSong();
+  }
+
+  // --- Init ---
+  function init() {
+    updateLayoutChrome();
+    reresolveSongsForLayout();
+
+    fillRootSelect(document.getElementById("root-select"));
+    document.getElementById("root-select").value = state.root;
+    document.getElementById("kind-select").value = state.kind;
+
+    if (!state.songs.length) {
+      // seed empty untitled so select isn't barren after first add
+    } else if (!state.activeSongId || !activeSong()) {
+      state.activeSongId = state.songs[0].id;
+    }
+
+    document.querySelectorAll(".layout-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setLayout(btn.dataset.layout));
+    });
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+    });
+
+    document.getElementById("root-select").addEventListener("change", (e) => {
+      state.root = e.target.value;
+      renderLibrary();
+    });
+    document.getElementById("kind-select").addEventListener("change", (e) => {
+      state.kind = e.target.value;
+      state.category = "All";
+      const list = formulasInCategory(state.kind, state.category);
+      state.formula = list[0]?.name || state.formula;
+      renderLibrary();
+    });
+    document.getElementById("category-select").addEventListener("change", (e) => {
+      state.category = e.target.value;
+      const list = formulasInCategory(state.kind, state.category);
+      if (!list.find((x) => x.name === state.formula)) state.formula = list[0]?.name;
+      renderLibrary();
+    });
+
+    document.getElementById("btn-add-song").addEventListener("click", addCurrentToSong);
+    document.getElementById("btn-show-all").addEventListener("click", () => {
+      state.showAllRoots = !state.showAllRoots;
+      document.getElementById("btn-show-all").textContent = state.showAllRoots
+        ? "Hide all roots"
+        : "Show all roots";
+      renderLibrary();
+    });
+
+    document.getElementById("song-name").addEventListener("change", (e) => {
+      const song = ensureActiveSong();
+      song.name = e.target.value.trim() || "Untitled Song";
+      persistSongs();
+      refreshSongSelect();
+    });
+    document.getElementById("song-select").addEventListener("change", (e) => {
+      state.activeSongId = e.target.value || null;
+      persistSongs();
+      renderSong();
+    });
+    document.getElementById("overlay-root").addEventListener("change", (e) => {
+      const song = ensureActiveSong();
+      song.overlay = song.overlay || {};
+      song.overlay.root = e.target.value;
+      if (song.overlay.formula) song.overlay.enabled = true;
+      persistSongs();
+      renderSong();
+    });
+    document.getElementById("overlay-formula").addEventListener("change", (e) => {
+      const song = ensureActiveSong();
+      song.overlay = song.overlay || { root: "C" };
+      if (!e.target.value) {
+        song.overlay.enabled = false;
+        song.overlay.formula = "";
+      } else {
+        song.overlay.enabled = true;
+        song.overlay.formula = e.target.value;
+        song.overlay.root = document.getElementById("overlay-root").value;
+      }
+      persistSongs();
+      renderSong();
+    });
+
+    document.getElementById("btn-save-song").addEventListener("click", () => {
+      const song = ensureActiveSong();
+      song.name = document.getElementById("song-name").value.trim() || "Untitled Song";
+      persistSongs();
+      refreshSongSelect();
+      const btn = document.getElementById("btn-save-song");
+      const prev = btn.textContent;
+      btn.textContent = "Saved ✓";
+      setTimeout(() => (btn.textContent = prev), 900);
+    });
+    document.getElementById("btn-new-song").addEventListener("click", () => {
+      const song = {
+        id: uid(),
+        name: "New Song",
+        bars: [],
+        overlay: { root: "C", formula: "", enabled: false },
+      };
+      state.songs.push(song);
+      state.activeSongId = song.id;
+      persistSongs();
+      renderSong();
+    });
+    document.getElementById("btn-delete-song").addEventListener("click", () => {
+      const song = activeSong();
+      if (!song) return;
+      if (!confirm(`Delete “${song.name}”?`)) return;
+      state.songs = state.songs.filter((s) => s.id !== song.id);
+      state.activeSongId = state.songs[0]?.id || null;
+      persistSongs();
+      renderSong();
+    });
+    document.getElementById("btn-clear-song").addEventListener("click", () => {
+      const song = activeSong();
+      if (!song?.bars.length) return;
+      if (!confirm("Clear all bars in this song?")) return;
+      song.bars = [];
+      persistSongs();
+      renderSong();
+    });
+    document.getElementById("btn-play-song").addEventListener("click", playProgression);
+    document.getElementById("btn-print").addEventListener("click", () => {
+      switchTab("song");
+      setTimeout(() => window.print(), 50);
+    });
+
+    document.getElementById("btn-pads-reset-c3").addEventListener("click", () => {
+      resetPadMapChromatic(48); // C3
+    });
+    document.getElementById("btn-pads-reset-c2").addEventListener("click", () => {
+      resetPadMapChromatic(36); // C2
+    });
+    document.getElementById("btn-pads-reset-c4").addEventListener("click", () => {
+      resetPadMapChromatic(60); // C4 / middle C
+    });
+
+    document.getElementById("prog-key").addEventListener("change", (e) => {
+      state.progKey = e.target.value;
+      renderProgressions();
+    });
+    document.getElementById("prog-genre").addEventListener("change", (e) => {
+      state.progGenre = e.target.value;
+      renderProgressions();
+    });
+    document.getElementById("prog-search").addEventListener("input", (e) => {
+      state.progSearch = e.target.value;
+      renderProgressions();
+    });
+
+    // Unlock audio on first gesture
+    ["pointerdown", "keydown"].forEach((evt) => {
+      window.addEventListener(evt, () => ensureAudio(), { once: true });
+    });
+
+    renderLibrary();
+    renderPlayer();
+    renderProgressions();
+    renderPadsEditor();
+    renderSong();
+  }
+
+  init();
+})();

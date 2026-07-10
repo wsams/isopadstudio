@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IsoPad Studio — Chord &amp; Scale Charts for Pad Controllers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <span class="brand-mark">16</span>
+        <div>
+          <h1>IsoPad Studio</h1>
+          <p class="tagline">Chord &amp; scale charts for pad controllers — map your own notes</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="layout-toggle" role="group" aria-label="Pad layout">
+          <button type="button" class="layout-btn active" data-layout="4x4" title="16 pads — MPD218, MPC, etc.">4×4</button>
+          <button type="button" class="layout-btn" data-layout="2x4" title="8 pads — LPD8, nanoPAD, etc.">2×4</button>
+        </div>
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-tab="library" role="tab" aria-selected="true">Library</button>
+          <button class="tab" data-tab="progressions" role="tab" aria-selected="false">Progressions</button>
+          <button class="tab" data-tab="song" role="tab" aria-selected="false">Song Builder</button>
+          <button class="tab" data-tab="pads" role="tab" aria-selected="false">Pads</button>
+          <button class="tab" data-tab="play" role="tab" aria-selected="false">Pad Player</button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- LIBRARY -->
+    <section id="panel-library" class="panel active" role="tabpanel">
+      <div class="toolbar">
+        <div class="field">
+          <label for="root-select">Root</label>
+          <select id="root-select"></select>
+        </div>
+        <div class="field">
+          <label for="kind-select">Kind</label>
+          <select id="kind-select">
+            <option value="chord">Chords</option>
+            <option value="scale">Scales &amp; Modes</option>
+          </select>
+        </div>
+        <div class="field grow">
+          <label for="category-select">Category</label>
+          <select id="category-select"></select>
+        </div>
+        <div class="field">
+          <label for="color-select">Color</label>
+          <div class="color-row" id="library-colors"></div>
+        </div>
+      </div>
+
+      <div class="category-chips" id="category-chips"></div>
+
+      <div class="split">
+        <aside class="formula-list" id="formula-list"></aside>
+        <div class="preview-area">
+          <div id="library-preview"></div>
+          <div class="preview-actions">
+            <button type="button" class="btn primary" id="btn-add-song">Add to Song</button>
+            <button type="button" class="btn ghost" id="btn-show-all">Show all roots</button>
+          </div>
+          <div class="hint" id="fit-hint"></div>
+        </div>
+      </div>
+
+      <div class="grid-gallery" id="all-roots-gallery" hidden></div>
+    </section>
+
+    <!-- PROGRESSIONS -->
+    <section id="panel-progressions" class="panel" role="tabpanel" hidden>
+      <div class="toolbar">
+        <div class="field">
+          <label for="prog-key">Key</label>
+          <select id="prog-key"></select>
+        </div>
+        <div class="field grow">
+          <label for="prog-genre">Genre</label>
+          <select id="prog-genre"></select>
+        </div>
+        <div class="field grow">
+          <label for="prog-search">Search</label>
+          <input id="prog-search" type="text" placeholder="blues, ii–V–I, canon…" maxlength="60" />
+        </div>
+      </div>
+      <div class="category-chips" id="prog-genre-chips"></div>
+      <p class="hint" id="prog-count"></p>
+      <div class="prog-list" id="prog-list"></div>
+    </section>
+
+    <!-- SONG BUILDER -->
+    <section id="panel-song" class="panel" role="tabpanel" hidden>
+      <div class="toolbar">
+        <div class="field grow">
+          <label for="song-name">Song name</label>
+          <input id="song-name" type="text" placeholder="12-Bar Blues" maxlength="80" />
+        </div>
+        <div class="field">
+          <label for="song-select">Saved songs</label>
+          <select id="song-select"></select>
+        </div>
+        <div class="field">
+          <label for="overlay-scale">Scale overlay</label>
+          <select id="overlay-root"></select>
+        </div>
+        <div class="field">
+          <label for="overlay-formula">&nbsp;</label>
+          <select id="overlay-formula"></select>
+        </div>
+      </div>
+
+      <div class="toolbar secondary">
+        <button type="button" class="btn" id="btn-save-song">Save</button>
+        <button type="button" class="btn" id="btn-new-song">New</button>
+        <button type="button" class="btn" id="btn-delete-song">Delete</button>
+        <button type="button" class="btn" id="btn-play-song">Play progression</button>
+        <button type="button" class="btn" id="btn-print">Print</button>
+        <button type="button" class="btn danger" id="btn-clear-song">Clear bars</button>
+      </div>
+
+      <div class="overlay-preview" id="overlay-preview" hidden></div>
+
+      <div class="song-strip" id="song-strip">
+        <p class="empty-state">No chords yet. Browse the Library and hit <strong>Add to Song</strong>.</p>
+      </div>
+
+      <div class="song-legend" id="song-legend"></div>
+    </section>
+
+    <!-- PAD MAP EDITOR -->
+    <section id="panel-pads" class="panel" role="tabpanel" hidden>
+      <div class="toolbar">
+        <p class="hint inline pads-intro">
+          Assign a note to each pad. Defaults are chromatic from <strong>C3</strong> (Pad 1).
+          Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4 and 2×4) in localStorage.
+        </p>
+      </div>
+      <div class="toolbar secondary">
+        <button type="button" class="btn" id="btn-pads-reset-c3">Reset chromatic from C3</button>
+        <button type="button" class="btn" id="btn-pads-reset-c2">From C2</button>
+        <button type="button" class="btn" id="btn-pads-reset-c4">From C4 (middle C)</button>
+      </div>
+      <div id="pads-editor" class="pads-editor"></div>
+    </section>
+
+    <!-- PAD PLAYER -->
+    <section id="panel-play" class="panel" role="tabpanel" hidden>
+      <div class="toolbar">
+        <div class="field">
+          <label for="player-transpose">Transpose</label>
+          <select id="player-transpose">
+            <option value="-12">−12</option>
+            <option value="-5">−5</option>
+            <option value="0" selected>0</option>
+            <option value="5">+5</option>
+            <option value="12">+12</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="player-wave">Tone</label>
+          <select id="player-wave">
+            <option value="triangle" selected>Soft (triangle)</option>
+            <option value="sine">Pure (sine)</option>
+            <option value="sawtooth">Bright (saw)</option>
+            <option value="square">Square</option>
+          </select>
+        </div>
+        <p class="hint inline">Click pads to play their mapped notes. Library selection is highlighted.</p>
+      </div>
+      <div class="player-wrap">
+        <div class="big-grid" id="player-grid"></div>
+        <div class="player-side">
+          <h2>Live pads</h2>
+          <p>Notes come from your Pads map.</p>
+          <div id="player-chord-ref"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>
+        Pad notes are editable · songs &amp; maps save in localStorage · serve over HTTP.
+      </p>
+    </footer>
+  </div>
+
+  <script src="lib/music.js"></script>
+  <script src="progressions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
