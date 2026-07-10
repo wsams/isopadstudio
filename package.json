@@ -1,8 +1,8 @@
 {
   "name": "isopadstudio",
   "private": true,
-  "version": "1.0.0",
-  "description": "Chord and scale charts for pad controllers and string instruments (guitar, bass, uke, violin family, and more)",
+  "version": "1.0.1",
+  "description": "Chord and scale charts for pad controllers with editable pad note maps (4×4 and 2×4)",
   "license": "MIT",
   "engines": {
     "node": ">=20"
