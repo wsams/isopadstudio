@@ -163,6 +163,10 @@ input {
   color: var(--c2);
 }
 
+.fret-base-label {
+  color: var(--c3);
+}
+
 .fret-grid {
   display: flex;
   flex-direction: column;
@@ -176,10 +180,11 @@ input {
 }
 
 .fret-string-name {
-  width: 1.1rem;
-  font-size: 0.65rem;
+  width: 1.15rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   font-family: "IBM Plex Mono", monospace;
-  color: var(--muted);
+  color: var(--text);
   text-align: right;
   flex-shrink: 0;
 }
@@ -199,7 +204,18 @@ input {
   flex: 1;
   gap: 0;
   border-left: 3px solid rgba(255, 255, 255, 0.55);
-  min-height: 18px;
+  min-height: 20px;
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+}
+
+/* Alternating string lanes — background only, no extra wire lines */
+.fret-string-row:nth-child(odd) .fret-cells {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.fret-string-row:nth-child(even) .fret-cells {
+  background: rgba(61, 184, 255, 0.1);
 }
 
 .fretboard.fingerboard .fret-cells {
@@ -211,8 +227,12 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.18);
-  min-height: 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  min-height: 20px;
+}
+
+.fret-cell:has(.fret-dot) {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .fretboard.fingerboard .fret-cell {

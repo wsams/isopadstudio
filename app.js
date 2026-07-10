@@ -324,12 +324,14 @@
 
   function playMidis(midis, { sequential = false, noteDur = null, gap = null, chordDur = null } = {}) {
     const step = chordSeconds();
+    const beat = beatSeconds();
     const ctx = ensureAudio();
     const now = ctx.currentTime + 0.02;
     const ordered = [...midis].sort((a, b) => a - b);
     if (sequential) {
-      const g = gap ?? Math.min(0.28, step / Math.max(ordered.length, 1));
-      const nd = noteDur ?? Math.min(0.45, g * 1.4);
+      // One scale degree per beat — not packed into a single chord duration
+      const g = gap ?? beat;
+      const nd = noteDur ?? Math.min(beat * 0.9, g * 0.9);
       ordered.forEach((midi, i) => playTone(0, now + i * g, nd, { midi }));
     } else {
       ordered.forEach((midi) => playTone(0, now, chordDur ?? step * 0.9, { midi }));
@@ -342,12 +344,13 @@
 
   function playPads(pads, { sequential = false, noteDur = null, gap = null, chordDur = null } = {}) {
     const step = chordSeconds();
+    const beat = beatSeconds();
     const ctx = ensureAudio();
     const now = ctx.currentTime + 0.02;
     const ordered = sequential ? sortPadsByPitch(pads) : [...pads];
     if (sequential) {
-      const g = gap ?? Math.min(0.28, step / Math.max(ordered.length, 1));
-      const nd = noteDur ?? Math.min(0.45, g * 1.4);
+      const g = gap ?? beat;
+      const nd = noteDur ?? Math.min(beat * 0.9, g * 0.9);
       ordered.forEach((pad, i) => playTone(pad, now + i * g, nd));
     } else {
       ordered.forEach((pad) => playTone(pad, now, chordDur ?? step * 0.9));
@@ -362,16 +365,45 @@
   };
 
   function getTempo() {
-    const input = document.getElementById("song-tempo");
-    const fromUi = Number(input?.value);
-    if (Number.isFinite(fromUi) && fromUi >= 40 && fromUi <= 240) return fromUi;
+    const inputs = [
+      document.getElementById("library-tempo"),
+      document.getElementById("song-tempo"),
+    ];
+    for (const input of inputs) {
+      if (!input) continue;
+      const fromUi = Number(input.value);
+      if (Number.isFinite(fromUi) && fromUi >= 40 && fromUi <= 240) return fromUi;
+    }
     const song = activeSong();
     return song?.tempo || DEFAULT_TEMPO;
   }
 
+  function beatSeconds() {
+    return 60 / getTempo();
+  }
+
   function chordSeconds() {
     // Two beats per chord/bar at the current tempo
-    return (60 / getTempo()) * 2;
+    return beatSeconds() * 2;
+  }
+
+  function syncTempoInputs(bpm) {
+    const v = String(bpm);
+    const lib = document.getElementById("library-tempo");
+    const song = document.getElementById("song-tempo");
+    if (lib && lib.value !== v) lib.value = v;
+    if (song && song.value !== v) song.value = v;
+  }
+
+  function setTempo(raw) {
+    let bpm = Number(raw);
+    if (!Number.isFinite(bpm)) bpm = DEFAULT_TEMPO;
+    bpm = Math.max(40, Math.min(240, Math.round(bpm)));
+    const active = ensureActiveSong();
+    active.tempo = bpm;
+    persistSongs();
+    syncTempoInputs(bpm);
+    return bpm;
   }
 
   function stopPlayback() {
@@ -421,9 +453,9 @@
       if (bar.midis?.length) {
         if (bar.isScale) {
           const sorted = [...bar.midis].sort((a, b) => a - b);
-          const noteGap = Math.min(0.22, step / Math.max(sorted.length, 1));
-          sorted.forEach((midi, i) => playTone(0, t + i * noteGap, noteGap * 1.5, { midi }));
-          t += Math.max(step, sorted.length * noteGap + 0.05);
+          const noteGap = beatSeconds();
+          sorted.forEach((midi, i) => playTone(0, t + i * noteGap, noteGap * 0.9, { midi }));
+          t += sorted.length * noteGap;
         } else {
           bar.midis.forEach((midi) => playTone(0, t, step * 0.9, { midi }));
           t += step;
@@ -432,9 +464,9 @@
       }
       if (bar.isScale) {
         const sorted = sortPadsByPitch(bar.pads);
-        const noteGap = Math.min(0.22, step / Math.max(sorted.length, 1));
-        sorted.forEach((pad, i) => playTone(pad, t + i * noteGap, noteGap * 1.5));
-        t += Math.max(step, sorted.length * noteGap + 0.05);
+        const noteGap = beatSeconds();
+        sorted.forEach((pad, i) => playTone(pad, t + i * noteGap, noteGap * 0.9));
+        t += sorted.length * noteGap;
       } else {
         const voicing = bar.primaryPads?.length ? bar.primaryPads : bar.pads;
         voicing.forEach((pad) => playTone(pad, t, step * 0.9));
@@ -819,12 +851,13 @@
     if (!inst) return el("div", { class: "fretboard" });
     const style = inst.style || "fretted";
     const stringCount = inst.strings;
-    const fretsShown = isScale ? (diagram.fretsShown || 5) : 4;
+    // Same 4-fret frame for chords and scales
+    const fretsShown = diagram.fretsShown || 4;
     const baseFret = diagram.baseFret || 1;
     const capo = diagram.capo || 0;
 
     const board = el("div", {
-      class: `fretboard ${style}`,
+      class: `fretboard ${style}${isScale ? " scale" : " chord"}`,
       style: { "--strings": String(stringCount), "--frets": String(fretsShown) },
     });
 
@@ -838,28 +871,22 @@
       const stringRow = el("div", { class: "fret-string-row", "data-string": String(s) });
       stringRow.appendChild(el("span", { class: "fret-string-name" }, inst.stringNames[s] || ""));
 
+      // Nut column: ○ open, × muted (chords), blank if unused — same for scales (○ = open scale tone)
       let nutMark = "";
-      if (!isScale && diagram.frets) {
+      if (isScale && diagram.dots) {
+        const openHit = diagram.dots.find((d) => d.string === s && d.fret === 0);
+        if (openHit) nutMark = "○";
+      } else if (diagram.frets) {
         const f = diagram.frets[s];
         if (f == null) nutMark = "×";
         else if (f === 0) nutMark = "○";
       }
-      stringRow.appendChild(el("span", { class: "fret-nut-mark" }, nutMark || "·"));
+      stringRow.appendChild(el("span", { class: "fret-nut-mark" }, nutMark));
 
       const cells = el("div", { class: "fret-cells" });
       for (let fretPos = 1; fretPos <= fretsShown; fretPos++) {
         const cell = el("div", { class: "fret-cell" });
-        if (!isScale && diagram.frets) {
-          const f = diagram.frets[s];
-          if (f === fretPos) {
-            cell.appendChild(
-              el("span", {
-                class: `fret-dot${diagram.barre === f ? " barre" : ""}`,
-                style: { background: color },
-              })
-            );
-          }
-        } else if (isScale && diagram.dots) {
+        if (isScale && diagram.dots) {
           const hit = diagram.dots.find((d) => d.string === s && d.fret === fretPos);
           if (hit) {
             cell.appendChild(
@@ -870,6 +897,16 @@
                   color: hit.isRoot ? "#111" : "#fff",
                 },
               }, hit.isRoot ? "R" : "")
+            );
+          }
+        } else if (diagram.frets) {
+          const f = diagram.frets[s];
+          if (f === fretPos) {
+            cell.appendChild(
+              el("span", {
+                class: `fret-dot${diagram.barre === f ? " barre" : ""}`,
+                style: { background: color },
+              })
             );
           }
         }
@@ -1007,6 +1044,7 @@
 
   function renderLibrary() {
     renderLibraryChrome();
+    syncTempoInputs(getTempo());
     const list = formulasInCategory(state.kind, state.category);
     if (!list.find((x) => x.name === state.formula) && list[0]) state.formula = list[0].name;
 
@@ -1168,6 +1206,7 @@
     document.getElementById("song-name").value = song?.name || "";
     const tempoInput = document.getElementById("song-tempo");
     if (tempoInput) tempoInput.value = String(song?.tempo || DEFAULT_TEMPO);
+    syncTempoInputs(song?.tempo || DEFAULT_TEMPO);
 
     const chordCapoField = document.getElementById("song-chord-capo-field");
     const scaleCapoField = document.getElementById("song-scale-capo-field");
@@ -2214,6 +2253,8 @@
       state.activeSongId = state.songs[0].id;
     }
 
+    syncTempoInputs(activeSong()?.tempo || DEFAULT_TEMPO);
+
     document.querySelectorAll(".layout-btn").forEach((btn) => {
       btn.addEventListener("click", () => setInstrument(btn.dataset.instrument));
     });
@@ -2309,7 +2350,7 @@
       const song = {
         id: uid(),
         name: "New Song",
-        tempo: getTempo(),
+        tempo: DEFAULT_TEMPO,
         chordCapo: 0,
         scaleCapo: 0,
         sections: [],
@@ -2342,13 +2383,10 @@
     document.getElementById("btn-play-song").addEventListener("click", playSongLoop);
     document.getElementById("btn-add-section").addEventListener("click", addEmptySection);
     document.getElementById("song-tempo").addEventListener("change", (e) => {
-      const song = ensureActiveSong();
-      let bpm = Number(e.target.value);
-      if (!Number.isFinite(bpm)) bpm = DEFAULT_TEMPO;
-      bpm = Math.max(40, Math.min(240, Math.round(bpm)));
-      e.target.value = String(bpm);
-      song.tempo = bpm;
-      persistSongs();
+      setTempo(e.target.value);
+    });
+    document.getElementById("library-tempo").addEventListener("change", (e) => {
+      setTempo(e.target.value);
     });
 
     function onCapoChange(which, value) {

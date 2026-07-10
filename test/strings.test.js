@@ -72,8 +72,11 @@ describe("resolveChordShape other instruments", () => {
 describe("resolveScaleDiagram", () => {
   it("places C major scale dots on guitar", () => {
     const diag = S.resolveScaleDiagram("guitar6", "C", [0, 2, 4, 5, 7, 9, 11], 0);
+    assert.equal(diag.fretsShown, 4);
     assert.ok(diag.dots.length >= 7);
     assert.ok(diag.dots.some((d) => d.isRoot));
+    // Open + frets 1–4 only (same frame as chords)
+    assert.ok(diag.dots.every((d) => d.fret >= 0 && d.fret <= 4));
   });
 
   it("scale capo shifts sounding pitches", () => {
