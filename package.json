@@ -1,7 +1,7 @@
 {
   "name": "isopadstudio",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Chord and scale charts for pad controllers with editable pad note maps (4×4 and 2×4)",
   "license": "MIT",
   "engines": {

@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.2.0](https://github.com/wsams/isopadstudio/compare/v1.1.0...v1.2.0) (2026-07-10)
+
+
+### Features
+
+* String improvements ([b8871fa](https://github.com/wsams/isopadstudio/commit/b8871fa7767c08d4d529e75b3f86637d966e0b6c))
+
 # [1.1.0](https://github.com/wsams/isopadstudio/compare/v1.0.1...v1.1.0) (2026-07-10)
 
 
