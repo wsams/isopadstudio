@@ -1,5 +1,7 @@
 # IsoPad Studio
 
+**Try it now:** [https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html)
+
 Isomorphic pad charts for controllers — **iso** (same shapes in every key) + **pad** + **studio** (chords, scales, songs, and your own note map).
 
 > Learn one chord shape. Play it in every key. Charts, scales, and songs for MPD / LPD / MPC-style pads.
