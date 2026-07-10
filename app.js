@@ -148,7 +148,9 @@
   const STORAGE_KEY = "isopadstudio.songs.v2";
   const ACTIVE_KEY = "isopadstudio.activeSongId";
   const LAYOUT_KEY = "isopadstudio.layout";
+  const INSTRUMENT_KEY = "isopadstudio.instrument";
   const PADMAP_KEY = "isopadstudio.padMaps.v1";
+  const TUNING_KEY = "isopadstudio.tunings.v1";
   const LEGACY_KEYS = {
     songs: ["isopadstudio.songs.v1", "chromapad.songs.v1", "mpc16chords.songs.v1"],
     active: ["chromapad.activeSongId", "mpc16chords.activeSongId"],
@@ -159,8 +161,12 @@
   const SECTION_ROLES = ["Intro", "Verse", "Pre-Chorus", "Chorus", "Bridge", "Solo", "Outro", "Custom"];
   const DEFAULT_TEMPO = 100;
   const M = globalThis.IsoPadMusic;
+  const S = globalThis.IsoPadStrings;
   if (!M) {
     throw new Error("IsoPadMusic failed to load — include lib/music.js before app.js");
+  }
+  if (!S) {
+    throw new Error("IsoPadStrings failed to load — include lib/strings.js before app.js");
   }
 
   const {
@@ -177,17 +183,29 @@
 
   const OCTAVES = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8];
 
-  function loadSavedLayout() {
+  function loadSavedInstrument() {
+    const fromInst = localStorage.getItem(INSTRUMENT_KEY);
+    if (fromInst && (LAYOUTS[fromInst] || S.isStringInstrument(fromInst))) return fromInst;
     const raw = localStorage.getItem(LAYOUT_KEY) || LEGACY_KEYS.layout.map((k) => localStorage.getItem(k)).find(Boolean);
     return LAYOUTS[raw] ? raw : "4x4";
   }
 
+  function isStringMode() {
+    return S.isStringInstrument(state.instrument);
+  }
+
   function currentLayout() {
-    return LAYOUTS[state.layout] || LAYOUTS["4x4"];
+    if (isStringMode()) return null;
+    return LAYOUTS[state.instrument] || LAYOUTS["4x4"];
+  }
+
+  function currentStringInstrument() {
+    return S.getInstrument(state.instrument);
   }
 
   function padCount() {
-    return currentLayout().pads;
+    const layout = currentLayout();
+    return layout ? layout.pads : 0;
   }
 
   function loadPadMaps() {
@@ -209,12 +227,57 @@
     }
   }
 
+  function loadTunings() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(TUNING_KEY) || "{}");
+      const out = {};
+      S.listInstruments().forEach((inst) => {
+        out[inst.id] = S.normalizeTuning(parsed[inst.id], inst.id);
+      });
+      return out;
+    } catch {
+      const out = {};
+      S.listInstruments().forEach((inst) => {
+        out[inst.id] = S.defaultTuning(inst.id);
+      });
+      return out;
+    }
+  }
+
   function persistPadMaps() {
     localStorage.setItem(PADMAP_KEY, JSON.stringify(state.padMaps));
   }
 
+  function persistTunings() {
+    localStorage.setItem(TUNING_KEY, JSON.stringify(state.tunings));
+  }
+
+  function persistInstrument() {
+    localStorage.setItem(INSTRUMENT_KEY, state.instrument);
+    if (!isStringMode()) localStorage.setItem(LAYOUT_KEY, state.instrument);
+  }
+
   function getPadMap() {
-    return state.padMaps[state.layout];
+    if (isStringMode()) return [];
+    return state.padMaps[state.instrument] || defaultPadMap(state.instrument);
+  }
+
+  function getTuning() {
+    const id = state.instrument;
+    if (!S.isStringInstrument(id)) return [];
+    return state.tunings[id] || S.defaultTuning(id);
+  }
+
+  function getChordCapo() {
+    const song = activeSong();
+    if (song && Number.isFinite(song.chordCapo)) return S.clampCapo(song.chordCapo);
+    return S.clampCapo(document.getElementById("library-capo")?.value ?? 0);
+  }
+
+  function getScaleCapo() {
+    const song = activeSong();
+    if (song && Number.isFinite(song.scaleCapo)) return S.clampCapo(song.scaleCapo);
+    return S.clampCapo(document.getElementById("library-capo")?.value ?? 0);
   }
 
   // --- Audio ---
@@ -233,7 +296,10 @@
     const map = getPadMap();
     const transpose = opts.transpose ?? Number(document.getElementById("player-transpose")?.value || 0);
     const wave = opts.wave ?? (document.getElementById("player-wave")?.value || "triangle");
-    const midi = (map[padIndex] ?? 60) + transpose;
+    const midi =
+      opts.midi != null
+        ? Number(opts.midi) + transpose
+        : (map[padIndex] ?? 60) + transpose;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
@@ -254,6 +320,20 @@
 
     osc.start(when);
     osc.stop(when + duration + 0.02);
+  }
+
+  function playMidis(midis, { sequential = false, noteDur = null, gap = null, chordDur = null } = {}) {
+    const step = chordSeconds();
+    const ctx = ensureAudio();
+    const now = ctx.currentTime + 0.02;
+    const ordered = [...midis].sort((a, b) => a - b);
+    if (sequential) {
+      const g = gap ?? Math.min(0.28, step / Math.max(ordered.length, 1));
+      const nd = noteDur ?? Math.min(0.45, g * 1.4);
+      ordered.forEach((midi, i) => playTone(0, now + i * g, nd, { midi }));
+    } else {
+      ordered.forEach((midi) => playTone(0, now, chordDur ?? step * 0.9, { midi }));
+    }
   }
 
   function sortPadsByPitch(pads) {
@@ -338,6 +418,18 @@
     const step = chordSeconds();
     let t = ctx.currentTime + 0.05;
     bars.forEach((bar) => {
+      if (bar.midis?.length) {
+        if (bar.isScale) {
+          const sorted = [...bar.midis].sort((a, b) => a - b);
+          const noteGap = Math.min(0.22, step / Math.max(sorted.length, 1));
+          sorted.forEach((midi, i) => playTone(0, t + i * noteGap, noteGap * 1.5, { midi }));
+          t += Math.max(step, sorted.length * noteGap + 0.05);
+        } else {
+          bar.midis.forEach((midi) => playTone(0, t, step * 0.9, { midi }));
+          t += step;
+        }
+        return;
+      }
       if (bar.isScale) {
         const sorted = sortPadsByPitch(bar.pads);
         const noteGap = Math.min(0.22, step / Math.max(sorted.length, 1));
@@ -380,7 +472,46 @@
 
   function flattenSongBars(song) {
     if (!song?.sections?.length) return [];
-    return song.sections.flatMap((s) => s.bars || []);
+    return song.sections.flatMap((s) =>
+      (s.bars || []).map((bar) => reresolveBar(bar, song))
+    );
+  }
+
+  function addCurrentToSong() {
+    const song = ensureActiveSong();
+    const section = ensureTargetSection(song);
+    const entry = getDict(state.kind)[state.formula];
+    const isScale = state.kind === "scale";
+    const bar = {
+      title: displayTitle(state.root, state.formula, entry),
+      color: state.color,
+      isScale,
+      root: state.root,
+      formula: state.formula,
+      kind: state.kind,
+    };
+    if (isStringMode()) {
+      const capo = isScale ? song.scaleCapo ?? 0 : song.chordCapo ?? 0;
+      const diagram = resolveStringChart(state.root, entry.intervals, { isScale, capo });
+      Object.assign(bar, {
+        diagram,
+        midis: diagram.midis,
+        pads: [],
+        primaryPads: [],
+        rootIndex: null,
+      });
+    } else {
+      const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
+        fillBoard: isScale,
+      });
+      Object.assign(bar, { pads, primaryPads, rootIndex });
+    }
+    section.bars.push(bar);
+    persistSongs();
+    const btn = document.getElementById("btn-add-song");
+    const prev = btn.textContent;
+    btn.textContent = "Added ✓";
+    setTimeout(() => (btn.textContent = prev), 900);
   }
 
   // --- Music helpers ---
@@ -449,18 +580,20 @@
         colorMap.set(uniq, COLORS[colorIdx % COLORS.length].hex);
         colorIdx += 1;
       }
-      const { pads, primaryPads, rootIndex } = getActivePads(root, entry.intervals);
-      return {
+      const base = {
         title: displayTitle(root, c.q, entry),
-        pads,
-        primaryPads,
         color: colorMap.get(uniq),
-        rootIndex,
         isScale: false,
         root,
         formula: c.q,
         kind: "chord",
       };
+      if (isStringMode()) {
+        const diagram = resolveStringChart(root, entry.intervals, { isScale: false });
+        return { ...base, diagram, midis: diagram.midis, pads: [], primaryPads: [], rootIndex: null };
+      }
+      const { pads, primaryPads, rootIndex } = getActivePads(root, entry.intervals);
+      return { ...base, pads, primaryPads, rootIndex };
     }).filter(Boolean);
   }
 
@@ -478,8 +611,9 @@
 
   // --- State ---
   const state = {
-    layout: loadSavedLayout(),
+    instrument: loadSavedInstrument(),
     padMaps: loadPadMaps(),
+    tunings: loadTunings(),
     kind: "chord",
     category: "All",
     formula: "Major 7",
@@ -513,6 +647,8 @@
     if (!Number.isFinite(song.tempo) || song.tempo < 40 || song.tempo > 240) {
       song.tempo = DEFAULT_TEMPO;
     }
+    song.chordCapo = S.clampCapo(song.chordCapo ?? 0);
+    song.scaleCapo = S.clampCapo(song.scaleCapo ?? 0);
     song.sections = (song.sections || []).map((section) => normalizeSection(section));
     if (!song.overlay) {
       song.overlay = { root: "C", formula: "", enabled: false };
@@ -569,10 +705,6 @@
     if (state.activeSongId) localStorage.setItem(ACTIVE_KEY, state.activeSongId);
   }
 
-  function persistLayout() {
-    localStorage.setItem(LAYOUT_KEY, state.layout);
-  }
-
   state.songs = loadSongs();
   state.activeSongId =
     localStorage.getItem(ACTIVE_KEY) ||
@@ -594,6 +726,8 @@
       id: uid(),
       name: "Untitled Song",
       tempo: DEFAULT_TEMPO,
+      chordCapo: 0,
+      scaleCapo: 0,
       sections: [],
       overlay: { root: "C", formula: "Major / Ionian", enabled: false },
     };
@@ -637,6 +771,7 @@
     size = "normal",
   } = {}) {
     const layout = currentLayout();
+    if (!layout) return el("div", { class: "grid" });
     const map = getPadMap();
     const primarySet = new Set(primaryPads);
     const grid = el("div", {
@@ -679,18 +814,116 @@
     return `rgba(${r},${g},${b},${a})`;
   }
 
-  function makeCard({ title, pads, primaryPads = [], color, rootIndex, isScale, actions, barNum, onPlay }) {
-    const playPadsList = isScale
-      ? pads
-      : primaryPads.length
-        ? primaryPads
-        : pads;
-    const notes = noteNamesForPads(playPadsList).join(" · ");
+  function buildFretboard(diagram, { color = "#ff4d6d", isScale = false } = {}) {
+    const inst = currentStringInstrument() || S.getInstrument(diagram.instrumentId);
+    if (!inst) return el("div", { class: "fretboard" });
+    const style = inst.style || "fretted";
+    const stringCount = inst.strings;
+    const fretsShown = isScale ? (diagram.fretsShown || 5) : 4;
+    const baseFret = diagram.baseFret || 1;
+    const capo = diagram.capo || 0;
+
+    const board = el("div", {
+      class: `fretboard ${style}`,
+      style: { "--strings": String(stringCount), "--frets": String(fretsShown) },
+    });
+
+    const meta = el("div", { class: "fret-meta" });
+    if (capo > 0) meta.appendChild(el("span", { class: "fret-capo-badge" }, `Capo ${capo}`));
+    if (baseFret > 1) meta.appendChild(el("span", { class: "fret-base-label" }, `${baseFret}fr`));
+    if (meta.childNodes.length) board.appendChild(meta);
+
+    const grid = el("div", { class: "fret-grid" });
+    for (let s = 0; s < stringCount; s++) {
+      const stringRow = el("div", { class: "fret-string-row", "data-string": String(s) });
+      stringRow.appendChild(el("span", { class: "fret-string-name" }, inst.stringNames[s] || ""));
+
+      let nutMark = "";
+      if (!isScale && diagram.frets) {
+        const f = diagram.frets[s];
+        if (f == null) nutMark = "×";
+        else if (f === 0) nutMark = "○";
+      }
+      stringRow.appendChild(el("span", { class: "fret-nut-mark" }, nutMark || "·"));
+
+      const cells = el("div", { class: "fret-cells" });
+      for (let fretPos = 1; fretPos <= fretsShown; fretPos++) {
+        const cell = el("div", { class: "fret-cell" });
+        if (!isScale && diagram.frets) {
+          const f = diagram.frets[s];
+          if (f === fretPos) {
+            cell.appendChild(
+              el("span", {
+                class: `fret-dot${diagram.barre === f ? " barre" : ""}`,
+                style: { background: color },
+              })
+            );
+          }
+        } else if (isScale && diagram.dots) {
+          const hit = diagram.dots.find((d) => d.string === s && d.fret === fretPos);
+          if (hit) {
+            cell.appendChild(
+              el("span", {
+                class: `fret-dot${hit.isRoot ? " root" : ""}`,
+                style: {
+                  background: hit.isRoot ? "#fff" : color,
+                  color: hit.isRoot ? "#111" : "#fff",
+                },
+              }, hit.isRoot ? "R" : "")
+            );
+          }
+        }
+        cells.appendChild(cell);
+      }
+      stringRow.appendChild(cells);
+      grid.appendChild(stringRow);
+    }
+    board.appendChild(grid);
+    return board;
+  }
+
+  function resolveStringChart(root, intervals, { isScale = false, capo = null } = {}) {
+    const id = state.instrument;
+    const tuning = getTuning();
+    if (isScale) {
+      return S.resolveScaleDiagram(id, root, intervals, capo != null ? capo : getScaleCapo(), tuning);
+    }
+    return S.resolveChordShape(id, root, intervals, capo != null ? capo : getChordCapo(), tuning);
+  }
+
+  function makeCard({
+    title,
+    pads = [],
+    primaryPads = [],
+    color,
+    rootIndex,
+    isScale,
+    actions,
+    barNum,
+    onPlay,
+    midis = null,
+    diagram = null,
+  }) {
+    const useStrings = Boolean(diagram && (diagram.frets || diagram.dots));
+    let notes = "";
+    let playPayload;
+
+    if (useStrings) {
+      const playMidisList = midis?.length ? midis : diagram.midis || [];
+      notes = playMidisList.map((m) => midiToLabel(m)).join(" · ");
+      playPayload = playMidisList;
+    } else {
+      const playPadsList = isScale ? pads : primaryPads.length ? primaryPads : pads;
+      notes = noteNamesForPads(playPadsList).join(" · ");
+      playPayload = playPadsList;
+    }
+
     const card = el("div", {
       class: "card clickable song-card",
       onClick: (e) => {
         if (e.target.closest("button")) return;
-        onPlay(playPadsList);
+        if (useStrings) onPlay(playPayload, { midis: true });
+        else onPlay(playPayload);
       },
     });
     if (barNum != null) card.appendChild(el("span", { class: "bar-num" }, String(barNum)));
@@ -700,7 +933,11 @@
         el("span", { class: "notes" }, notes),
       ])
     );
-    card.appendChild(buildGrid(pads, color, { rootIndex, primaryPads: isScale ? [] : primaryPads }));
+    if (useStrings) {
+      card.appendChild(buildFretboard(diagram, { color, isScale: !!isScale }));
+    } else {
+      card.appendChild(buildGrid(pads, color, { rootIndex, primaryPads: isScale ? [] : primaryPads }));
+    }
     if (actions) card.appendChild(actions);
     return card;
   }
@@ -793,31 +1030,59 @@
     });
 
     const entry = getDict(state.kind)[state.formula];
-    const { pads, primaryPads, missing, rootIndex } = getActivePads(state.root, entry.intervals, {
-      fillBoard: state.kind === "scale",
-    });
     const title = displayTitle(state.root, state.formula, entry);
     const preview = document.getElementById("library-preview");
     preview.innerHTML = "";
-    preview.appendChild(
-      makeCard({
-        title,
-        pads,
-        primaryPads,
-        color: state.color,
-        rootIndex,
-        isScale: state.kind === "scale",
-        onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
-      })
-    );
 
-    const hint = document.getElementById("fit-hint");
-    if (missing.length) {
-      hint.textContent = `Missing on this pad map: ${missing.join(", ")}. Assign those notes in the Pads tab, or pick a different root.`;
+    const libCapoField = document.getElementById("library-capo-field");
+    if (libCapoField) libCapoField.hidden = !isStringMode();
+
+    if (isStringMode()) {
+      const isScale = state.kind === "scale";
+      const capo = isScale ? getScaleCapo() : getChordCapo();
+      const diagram = resolveStringChart(state.root, entry.intervals, { isScale, capo });
+      preview.appendChild(
+        makeCard({
+          title,
+          color: state.color,
+          isScale,
+          diagram,
+          midis: diagram.midis,
+          onPlay: (list) => playMidis(list, { sequential: isScale }),
+        })
+      );
+      const hint = document.getElementById("fit-hint");
+      const missing = diagram.missing || [];
+      if (missing.length) {
+        hint.textContent = `Hard to cover on this tuning: ${missing.join(", ")}. Try another voicing root or edit Tuning.`;
+      } else {
+        hint.textContent = isScale
+          ? "Scale tones on the fingerboard (capo applies to scales separately from chords in Song Builder). Click to hear ascending."
+          : "Standard-style chord chart. Capo frets are relative to the capo. Click to hear the voicing.";
+      }
     } else {
-      hint.textContent = state.kind === "scale"
-        ? "Every pad whose note is in the scale is lit (using your Pads map). Click to hear ascending by pitch. Root pad is outlined."
-        : "All chord-tone pads are lit. Bright border = primary voicing (first instance of each tone). Click to hear that voicing.";
+      const { pads, primaryPads, missing, rootIndex } = getActivePads(state.root, entry.intervals, {
+        fillBoard: state.kind === "scale",
+      });
+      preview.appendChild(
+        makeCard({
+          title,
+          pads,
+          primaryPads,
+          color: state.color,
+          rootIndex,
+          isScale: state.kind === "scale",
+          onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
+        })
+      );
+      const hint = document.getElementById("fit-hint");
+      if (missing.length) {
+        hint.textContent = `Missing on this pad map: ${missing.join(", ")}. Assign those notes in the Pads tab, or pick a different root.`;
+      } else {
+        hint.textContent = state.kind === "scale"
+          ? "Every pad whose note is in the scale is lit (using your Pads map). Click to hear ascending by pitch. Root pad is outlined."
+          : "All chord-tone pads are lit. Bright border = primary voicing (first instance of each tone). Click to hear that voicing.";
+      }
     }
 
     const gallery = document.getElementById("all-roots-gallery");
@@ -825,19 +1090,35 @@
       gallery.hidden = false;
       gallery.innerHTML = "";
       NOTES.forEach((root) => {
-        const data = getActivePads(root, entry.intervals, { fillBoard: state.kind === "scale" });
-        if (!data.pads.length) return;
-        gallery.appendChild(
-          makeCard({
-            title: displayTitle(root, state.formula, entry),
-            pads: data.pads,
-            primaryPads: data.primaryPads,
-            color: state.color,
-            rootIndex: data.rootIndex,
-            isScale: state.kind === "scale",
-            onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
-          })
-        );
+        if (isStringMode()) {
+          const isScale = state.kind === "scale";
+          const diagram = resolveStringChart(root, entry.intervals, { isScale });
+          if (!diagram.midis?.length) return;
+          gallery.appendChild(
+            makeCard({
+              title: displayTitle(root, state.formula, entry),
+              color: state.color,
+              isScale,
+              diagram,
+              midis: diagram.midis,
+              onPlay: (list) => playMidis(list, { sequential: isScale }),
+            })
+          );
+        } else {
+          const data = getActivePads(root, entry.intervals, { fillBoard: state.kind === "scale" });
+          if (!data.pads.length) return;
+          gallery.appendChild(
+            makeCard({
+              title: displayTitle(root, state.formula, entry),
+              pads: data.pads,
+              primaryPads: data.primaryPads,
+              color: state.color,
+              rootIndex: data.rootIndex,
+              isScale: state.kind === "scale",
+              onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
+            })
+          );
+        }
       });
     } else {
       gallery.hidden = true;
@@ -888,6 +1169,20 @@
     const tempoInput = document.getElementById("song-tempo");
     if (tempoInput) tempoInput.value = String(song?.tempo || DEFAULT_TEMPO);
 
+    const chordCapoField = document.getElementById("song-chord-capo-field");
+    const scaleCapoField = document.getElementById("song-scale-capo-field");
+    const showCapo = isStringMode();
+    if (chordCapoField) chordCapoField.hidden = !showCapo;
+    if (scaleCapoField) scaleCapoField.hidden = !showCapo;
+    const chordCapoInput = document.getElementById("song-chord-capo");
+    const scaleCapoInput = document.getElementById("song-scale-capo");
+    const libCapo = document.getElementById("library-capo");
+    if (chordCapoInput) chordCapoInput.value = String(song?.chordCapo ?? 0);
+    if (scaleCapoInput) scaleCapoInput.value = String(song?.scaleCapo ?? 0);
+    if (libCapo && song) {
+      libCapo.value = String(state.kind === "scale" ? song.scaleCapo ?? 0 : song.chordCapo ?? 0);
+    }
+
     const strip = document.getElementById("song-strip");
     strip.innerHTML = "";
     if (!song || !song.sections.length) {
@@ -907,21 +1202,38 @@
     const overlayBox = document.getElementById("overlay-preview");
     if (song?.overlay?.enabled && song.overlay.formula) {
       const entry = SCALES[song.overlay.formula];
-      const { pads, primaryPads, rootIndex } = getActivePads(song.overlay.root, entry.intervals, { fillBoard: true });
       overlayBox.hidden = false;
       overlayBox.innerHTML = "";
       overlayBox.appendChild(el("div", { class: "hint", style: { marginBottom: "10px" } }, "Scale overlay (shown with song)"));
-      overlayBox.appendChild(
-        makeCard({
-          title: displayTitle(song.overlay.root, song.overlay.formula, entry),
-          pads,
-          primaryPads,
-          color: "#3db8ff",
-          rootIndex,
+      if (isStringMode()) {
+        const diagram = resolveStringChart(song.overlay.root, entry.intervals, {
           isScale: true,
-          onPlay: (list) => playPads(list, { sequential: true }),
-        })
-      );
+          capo: song.scaleCapo ?? 0,
+        });
+        overlayBox.appendChild(
+          makeCard({
+            title: displayTitle(song.overlay.root, song.overlay.formula, entry),
+            color: "#3db8ff",
+            isScale: true,
+            diagram,
+            midis: diagram.midis,
+            onPlay: (list) => playMidis(list, { sequential: true }),
+          })
+        );
+      } else {
+        const { pads, primaryPads, rootIndex } = getActivePads(song.overlay.root, entry.intervals, { fillBoard: true });
+        overlayBox.appendChild(
+          makeCard({
+            title: displayTitle(song.overlay.root, song.overlay.formula, entry),
+            pads,
+            primaryPads,
+            color: "#3db8ff",
+            rootIndex,
+            isScale: true,
+            onPlay: (list) => playPads(list, { sequential: true }),
+          })
+        );
+      }
     } else {
       overlayBox.hidden = true;
       overlayBox.innerHTML = "";
@@ -1091,17 +1403,41 @@
       }, "✕"),
     ]);
 
-    const card = makeCard({
+    const cardOpts = {
       title: bar.title,
-      pads: bar.pads,
+      pads: bar.pads || [],
       primaryPads: bar.primaryPads || [],
       color: bar.color,
       rootIndex: bar.rootIndex ?? null,
       isScale: !!bar.isScale,
       barNum: barIndex + 1,
       actions,
-      onPlay: (list) => playPads(list, { sequential: !!bar.isScale }),
-    });
+      midis: bar.midis || null,
+      diagram: bar.diagram || null,
+      onPlay: (list) => {
+        if (bar.midis?.length || isStringMode()) {
+          playMidis(list, { sequential: !!bar.isScale });
+        } else {
+          playPads(list, { sequential: !!bar.isScale });
+        }
+      },
+    };
+
+    if (isStringMode() && bar.root && bar.formula) {
+      const entry = getDict(bar.kind || (bar.isScale ? "scale" : "chord"))[bar.formula];
+      if (entry) {
+        const song = activeSong();
+        const capo = bar.isScale ? (song?.scaleCapo ?? 0) : (song?.chordCapo ?? 0);
+        const diagram = resolveStringChart(bar.root, entry.intervals, {
+          isScale: !!bar.isScale,
+          capo,
+        });
+        cardOpts.diagram = diagram;
+        cardOpts.midis = diagram.midis;
+      }
+    }
+
+    const card = makeCard(cardOpts);
     card.classList.add("song-card");
     card.draggable = true;
     card.addEventListener("dragstart", (e) => {
@@ -1228,31 +1564,6 @@
     renderSong();
   }
 
-  function addCurrentToSong() {
-    const song = ensureActiveSong();
-    const section = ensureTargetSection(song);
-    const entry = getDict(state.kind)[state.formula];
-    const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
-      fillBoard: state.kind === "scale",
-    });
-    section.bars.push({
-      title: displayTitle(state.root, state.formula, entry),
-      pads,
-      primaryPads,
-      color: state.color,
-      rootIndex,
-      isScale: state.kind === "scale",
-      root: state.root,
-      formula: state.formula,
-      kind: state.kind,
-    });
-    persistSongs();
-    const btn = document.getElementById("btn-add-song");
-    const prev = btn.textContent;
-    btn.textContent = "Added ✓";
-    setTimeout(() => (btn.textContent = prev), 900);
-  }
-
   function playSongLoop() {
     const song = activeSong();
     if (!song || !flattenSongBars(song).length) return;
@@ -1267,38 +1578,85 @@
     renderSong();
   }
 
-  // --- Pad player ---
+  // --- Pad / string player ---
   function renderPlayer() {
     const gridHost = document.getElementById("player-grid");
     if (!gridHost) return;
-    const grid = buildGrid([], "#555", {
-      size: "big",
-      interactive: true,
-      onPad: (padIndex) => {
-        playTone(padIndex, ensureAudio().currentTime, 0.55, { peak: 0.22 });
-        flashPad(padIndex);
-      },
-    });
-    grid.id = "player-grid";
-    gridHost.replaceWith(grid);
-    const side = document.querySelector(".player-side p");
-    if (side) {
-      const map = getPadMap();
-      side.textContent = `${currentLayout().label} — notes come from your Pads map (Pad 1 = ${midiToLabel(map[0])}). Edit them in the Pads tab.`;
+    const titleEl = document.getElementById("player-side-title");
+    const descEl = document.getElementById("player-side-desc");
+    const hintEl = document.getElementById("player-hint");
+
+    if (isStringMode()) {
+      const inst = currentStringInstrument();
+      const tuning = getTuning();
+      const board = el("div", { class: "string-player", id: "player-grid" });
+      tuning.forEach((midi, i) => {
+        board.appendChild(
+          el(
+            "button",
+            {
+              type: "button",
+              class: "string-pluck",
+              onClick: () => playTone(0, ensureAudio().currentTime, 0.55, { midi, peak: 0.22 }),
+            },
+            [
+              el("span", { class: "string-pluck-name" }, inst.stringNames[i] || `S${i + 1}`),
+              el("span", { class: "string-pluck-note" }, midiToLabel(midi)),
+            ]
+          )
+        );
+      });
+      gridHost.replaceWith(board);
+      if (titleEl) titleEl.textContent = "Open strings";
+      if (descEl) descEl.textContent = `${inst.label} — click a string to pluck open. Edit tuning in the Tuning tab.`;
+      if (hintEl) hintEl.textContent = "Pluck open strings. Library selection is shown on the right.";
+    } else {
+      const grid = buildGrid([], "#555", {
+        size: "big",
+        interactive: true,
+        onPad: (padIndex) => {
+          playTone(padIndex, ensureAudio().currentTime, 0.55, { peak: 0.22 });
+          flashPad(padIndex);
+        },
+      });
+      grid.id = "player-grid";
+      gridHost.replaceWith(grid);
+      if (titleEl) titleEl.textContent = "Live pads";
+      if (descEl) {
+        const map = getPadMap();
+        const layout = currentLayout();
+        descEl.textContent = `${layout.label} — notes come from your Pads map (Pad 1 = ${midiToLabel(map[0])}). Edit them in the Pads tab.`;
+      }
+      if (hintEl) hintEl.textContent = "Click pads to play their mapped notes. Library selection is highlighted.";
     }
     renderPlayerRef();
   }
 
-  function reresolveBar(bar) {
+  function reresolveBar(bar, song = null) {
     if (bar.root && bar.formula && bar.kind) {
       const entry = getDict(bar.kind)[bar.formula];
       if (entry) {
+        if (isStringMode()) {
+          const s = song || activeSong();
+          const isScale = bar.kind === "scale" || !!bar.isScale;
+          const capo = isScale ? (s?.scaleCapo ?? 0) : (s?.chordCapo ?? 0);
+          const diagram = resolveStringChart(bar.root, entry.intervals, { isScale, capo });
+          return {
+            ...bar,
+            diagram,
+            midis: diagram.midis,
+            pads: [],
+            primaryPads: [],
+            rootIndex: null,
+          };
+        }
         const { pads, primaryPads, rootIndex } = getActivePads(bar.root, entry.intervals, {
           fillBoard: bar.kind === "scale" || !!bar.isScale,
         });
-        return { ...bar, pads, primaryPads, rootIndex };
+        return { ...bar, pads, primaryPads, rootIndex, midis: null, diagram: null };
       }
     }
+    if (isStringMode()) return { ...bar };
     return {
       ...bar,
       pads: (bar.pads || []).filter((p) => p < padCount()),
@@ -1310,30 +1668,80 @@
     state.songs.forEach((song) => {
       song.sections = (song.sections || []).map((section) => ({
         ...section,
-        bars: (section.bars || []).map(reresolveBar),
+        bars: (section.bars || []).map((bar) => reresolveBar(bar, song)),
       }));
     });
     persistSongs();
   }
 
-  function updateLayoutChrome() {
-    const layout = currentLayout();
+  function updateInstrumentChrome() {
     const mark = document.querySelector(".brand-mark");
-    if (mark) mark.textContent = layout.brand;
-    document.querySelectorAll(".layout-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.layout === state.layout);
-    });
-    const footer = document.querySelector(".footer p");
-    if (footer) {
-      const map = getPadMap();
-      footer.textContent = `${currentLayout().label} · Pad 1 = ${midiToLabel(map[0])} (editable in Pads) · songs & maps save in localStorage · serve over HTTP.`;
+    const sel = document.getElementById("instrument-select");
+    if (sel && !sel.dataset.filled) {
+      sel.innerHTML = "";
+      sel.appendChild(el("option", { value: "" }, "— pads —"));
+      S.listInstruments().forEach((inst) => {
+        sel.appendChild(el("option", { value: inst.id }, inst.label));
+      });
+      sel.dataset.filled = "1";
     }
-    document.body.dataset.layout = layout.id;
+    if (sel) sel.value = isStringMode() ? state.instrument : "";
+
+    document.querySelectorAll(".layout-btn").forEach((btn) => {
+      const id = btn.dataset.instrument;
+      btn.classList.toggle("active", !isStringMode() && id === state.instrument);
+    });
+
+    if (isStringMode()) {
+      const inst = currentStringInstrument();
+      if (mark) mark.textContent = String(inst.strings);
+      document.body.dataset.instrument = inst.id;
+      document.body.dataset.family = "strings";
+      const tabPads = document.getElementById("tab-pads");
+      const tabPlay = document.getElementById("tab-play");
+      if (tabPads) tabPads.textContent = "Tuning";
+      if (tabPlay) tabPlay.textContent = "Strings";
+      const intro = document.getElementById("pads-intro");
+      if (intro) {
+        intro.innerHTML = `Edit open-string tuning for <strong>${inst.label}</strong>. Capo is set per song (chord vs scale). Tunings save per instrument in localStorage.`;
+      }
+      const padsReset = document.getElementById("pads-reset-row");
+      const tuningReset = document.getElementById("tuning-reset-row");
+      if (padsReset) padsReset.hidden = true;
+      if (tuningReset) tuningReset.hidden = false;
+      const footer = document.querySelector(".footer p");
+      if (footer) {
+        footer.textContent = `${inst.label} · capo & tunings editable · songs save in localStorage · serve over HTTP.`;
+      }
+    } else {
+      const layout = currentLayout();
+      if (mark) mark.textContent = layout.brand;
+      document.body.dataset.instrument = layout.id;
+      document.body.dataset.family = "pads";
+      const tabPads = document.getElementById("tab-pads");
+      const tabPlay = document.getElementById("tab-play");
+      if (tabPads) tabPads.textContent = "Pads";
+      if (tabPlay) tabPlay.textContent = "Pad Player";
+      const intro = document.getElementById("pads-intro");
+      if (intro) {
+        intro.innerHTML =
+          'Assign a note to each pad. Defaults are chromatic from <strong>C3</strong> (Pad 1). Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4 and 2×4) in localStorage.';
+      }
+      const padsReset = document.getElementById("pads-reset-row");
+      const tuningReset = document.getElementById("tuning-reset-row");
+      if (padsReset) padsReset.hidden = false;
+      if (tuningReset) tuningReset.hidden = true;
+      const footer = document.querySelector(".footer p");
+      if (footer) {
+        const map = getPadMap();
+        footer.textContent = `${layout.label} · Pad 1 = ${midiToLabel(map[0])} (editable in Pads) · songs & maps save in localStorage · serve over HTTP.`;
+      }
+    }
   }
 
   function refreshAfterPadMapChange() {
     reresolveSongsForLayout();
-    updateLayoutChrome();
+    updateInstrumentChrome();
     renderLibrary();
     renderProgressions();
     renderSong();
@@ -1359,8 +1767,18 @@
     }
   }
 
+  function setStringMidi(stringIndex, midi) {
+    const id = state.instrument;
+    if (!S.isStringInstrument(id)) return;
+    state.tunings[id][stringIndex] = Math.max(0, Math.min(127, midi));
+    persistTunings();
+    refreshAfterPadMapChange();
+    renderPadsEditor();
+  }
+
   function resetPadMapChromatic(startMidi = DEFAULT_START_MIDI) {
-    const layoutId = state.layout;
+    if (isStringMode()) return;
+    const layoutId = state.instrument;
     state.padMaps[layoutId] = Array.from(
       { length: LAYOUTS[layoutId].pads },
       (_, i) => startMidi + i
@@ -1370,13 +1788,78 @@
     renderPadsEditor();
   }
 
+  function resetTuning() {
+    if (!isStringMode()) return;
+    state.tunings[state.instrument] = S.defaultTuning(state.instrument);
+    persistTunings();
+    refreshAfterPadMapChange();
+    renderPadsEditor();
+  }
+
   function renderPadsEditor() {
     const host = document.getElementById("pads-editor");
     if (!host) return;
-    const layout = currentLayout();
-    const map = getPadMap();
     host.innerHTML = "";
 
+    if (isStringMode()) {
+      const inst = currentStringInstrument();
+      const tuning = getTuning();
+      const grid = el("div", { class: "pads-editor-grid tuning-editor" });
+      tuning.forEach((midi, stringIndex) => {
+        const parts = midiParts(midi);
+        const noteSel = el("select", {
+          class: "pad-note-select",
+          "aria-label": `String ${stringIndex + 1} note`,
+          onChange: (e) => {
+            const wrap = e.target.closest("[data-string-edit]");
+            const oct = Number(wrap.querySelector(".pad-octave-select").value);
+            setStringMidi(stringIndex, labelToMidi(e.target.value, oct));
+          },
+        });
+        NOTES.forEach((n) => {
+          const opt = el("option", { value: n }, n);
+          if (n === parts.note) opt.selected = true;
+          noteSel.appendChild(opt);
+        });
+        const octSel = el("select", {
+          class: "pad-octave-select",
+          "aria-label": `String ${stringIndex + 1} octave`,
+          onChange: (e) => {
+            const wrap = e.target.closest("[data-string-edit]");
+            const note = wrap.querySelector(".pad-note-select").value;
+            setStringMidi(stringIndex, labelToMidi(note, e.target.value));
+          },
+        });
+        OCTAVES.forEach((o) => {
+          const opt = el("option", { value: String(o) }, String(o));
+          if (o === parts.octave) opt.selected = true;
+          octSel.appendChild(opt);
+        });
+        grid.appendChild(
+          el("div", { class: "pad-edit-cell", "data-string-edit": String(stringIndex) }, [
+            el("div", { class: "pad-edit-label" }, [
+              el("span", {}, `${inst.stringNames[stringIndex] || `S${stringIndex + 1}`} string`),
+            ]),
+            el("div", { class: "pad-edit-controls" }, [noteSel, octSel]),
+            el("div", { class: "pad-edit-midi" }, midiToLabel(midi)),
+            el(
+              "button",
+              {
+                type: "button",
+                class: "btn ghost pad-audition",
+                onClick: () => playTone(0, ensureAudio().currentTime, 0.45, { midi, peak: 0.22 }),
+              },
+              "▶"
+            ),
+          ])
+        );
+      });
+      host.appendChild(grid);
+      return;
+    }
+
+    const layout = currentLayout();
+    const map = getPadMap();
     const grid = el("div", { class: `pads-editor-grid rows-${layout.rows}` });
     for (let row = layout.rows - 1; row >= 0; row--) {
       for (let col = 0; col < layout.cols; col++) {
@@ -1441,12 +1924,15 @@
     host.appendChild(grid);
   }
 
-  function setLayout(layoutId) {
-    if (!LAYOUTS[layoutId] || state.layout === layoutId) return;
-    state.layout = layoutId;
-    persistLayout();
+  function setInstrument(instrumentId) {
+    if (!instrumentId) return;
+    if (!LAYOUTS[instrumentId] && !S.isStringInstrument(instrumentId)) return;
+    if (state.instrument === instrumentId) return;
+    stopPlayback();
+    state.instrument = instrumentId;
+    persistInstrument();
     reresolveSongsForLayout();
-    updateLayoutChrome();
+    updateInstrumentChrome();
     renderLibrary();
     renderProgressions();
     renderSong();
@@ -1475,26 +1961,42 @@
       host.innerHTML = "";
       return;
     }
-    const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
-      fillBoard: state.kind === "scale",
-    });
     host.innerHTML = "";
     host.appendChild(el("p", { class: "hint" }, `Library selection: ${displayTitle(state.root, state.formula, entry)}`));
-    host.appendChild(
-      makeCard({
-        title: displayTitle(state.root, state.formula, entry),
-        pads,
-        primaryPads,
-        color: state.color,
-        rootIndex,
-        isScale: state.kind === "scale",
-        onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
-      })
-    );
-    renderPlayerHighlight();
+    if (isStringMode()) {
+      const isScale = state.kind === "scale";
+      const diagram = resolveStringChart(state.root, entry.intervals, { isScale });
+      host.appendChild(
+        makeCard({
+          title: displayTitle(state.root, state.formula, entry),
+          color: state.color,
+          isScale,
+          diagram,
+          midis: diagram.midis,
+          onPlay: (list) => playMidis(list, { sequential: isScale }),
+        })
+      );
+    } else {
+      const { pads, primaryPads, rootIndex } = getActivePads(state.root, entry.intervals, {
+        fillBoard: state.kind === "scale",
+      });
+      host.appendChild(
+        makeCard({
+          title: displayTitle(state.root, state.formula, entry),
+          pads,
+          primaryPads,
+          color: state.color,
+          rootIndex,
+          isScale: state.kind === "scale",
+          onPlay: (list) => playPads(list, { sequential: state.kind === "scale" }),
+        })
+      );
+      renderPlayerHighlight();
+    }
   }
 
   function renderPlayerHighlight() {
+    if (isStringMode()) return;
     const entry = getDict(state.kind)[state.formula];
     if (!entry) return;
     const { pads, primaryPads } = getActivePads(state.root, entry.intervals, {
@@ -1699,7 +2201,7 @@
 
   // --- Init ---
   function init() {
-    updateLayoutChrome();
+    updateInstrumentChrome();
     reresolveSongsForLayout();
 
     fillRootSelect(document.getElementById("root-select"));
@@ -1713,7 +2215,11 @@
     }
 
     document.querySelectorAll(".layout-btn").forEach((btn) => {
-      btn.addEventListener("click", () => setLayout(btn.dataset.layout));
+      btn.addEventListener("click", () => setInstrument(btn.dataset.instrument));
+    });
+    document.getElementById("instrument-select").addEventListener("change", (e) => {
+      if (e.target.value) setInstrument(e.target.value);
+      else if (isStringMode()) setInstrument("4x4");
     });
 
     document.querySelectorAll(".tab").forEach((tab) => {
@@ -1729,6 +2235,11 @@
       state.category = "All";
       const list = formulasInCategory(state.kind, state.category);
       state.formula = list[0]?.name || state.formula;
+      const song = activeSong();
+      const libCapo = document.getElementById("library-capo");
+      if (libCapo && song) {
+        libCapo.value = String(state.kind === "scale" ? song.scaleCapo ?? 0 : song.chordCapo ?? 0);
+      }
       renderLibrary();
     });
     document.getElementById("category-select").addEventListener("change", (e) => {
@@ -1758,6 +2269,7 @@
       state.activeSongId = e.target.value || null;
       persistSongs();
       renderSong();
+      renderLibrary();
     });
     document.getElementById("overlay-root").addEventListener("change", (e) => {
       const song = ensureActiveSong();
@@ -1798,6 +2310,8 @@
         id: uid(),
         name: "New Song",
         tempo: getTempo(),
+        chordCapo: 0,
+        scaleCapo: 0,
         sections: [],
         overlay: { root: "C", formula: "", enabled: false },
       };
@@ -1836,6 +2350,29 @@
       song.tempo = bpm;
       persistSongs();
     });
+
+    function onCapoChange(which, value) {
+      const song = ensureActiveSong();
+      const capo = S.clampCapo(value);
+      if (which === "chord") song.chordCapo = capo;
+      else song.scaleCapo = capo;
+      persistSongs();
+      reresolveSongsForLayout();
+      renderLibrary();
+      renderSong();
+      renderProgressions();
+    }
+
+    document.getElementById("song-chord-capo").addEventListener("change", (e) => {
+      onCapoChange("chord", e.target.value);
+    });
+    document.getElementById("song-scale-capo").addEventListener("change", (e) => {
+      onCapoChange("scale", e.target.value);
+    });
+    document.getElementById("library-capo").addEventListener("change", (e) => {
+      onCapoChange(state.kind === "scale" ? "scale" : "chord", e.target.value);
+    });
+
     document.getElementById("btn-print").addEventListener("click", () => {
       switchTab("song");
       setTimeout(() => window.print(), 50);
@@ -1850,6 +2387,7 @@
     document.getElementById("btn-pads-reset-c4").addEventListener("click", () => {
       resetPadMapChromatic(60); // C4 / middle C
     });
+    document.getElementById("btn-tuning-reset").addEventListener("click", resetTuning);
 
     document.getElementById("prog-key").addEventListener("change", (e) => {
       state.progKey = e.target.value;

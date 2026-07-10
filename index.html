@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IsoPad Studio — Chord &amp; Scale Charts for Pad Controllers</title>
+  <title>IsoPad Studio — Chord &amp; Scale Charts for Pads &amp; Strings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
@@ -16,20 +16,28 @@
         <span class="brand-mark">16</span>
         <div>
           <h1>IsoPad Studio</h1>
-          <p class="tagline">Chord &amp; scale charts for pad controllers — map your own notes</p>
+          <p class="tagline">Chord &amp; scale charts for pads and string instruments</p>
         </div>
       </div>
       <div class="header-controls">
-        <div class="layout-toggle" role="group" aria-label="Pad layout">
-          <button type="button" class="layout-btn active" data-layout="4x4" title="16 pads — MPD218, MPC, etc.">4×4</button>
-          <button type="button" class="layout-btn" data-layout="2x4" title="8 pads — LPD8, nanoPAD, etc.">2×4</button>
+        <div class="instrument-picker">
+          <div class="layout-toggle" role="group" aria-label="Pad layout">
+            <button type="button" class="layout-btn active" data-instrument="4x4" title="16 pads — MPD218, MPC, etc.">4×4</button>
+            <button type="button" class="layout-btn" data-instrument="2x4" title="8 pads — LPD8, nanoPAD, etc.">2×4</button>
+          </div>
+          <label class="field instrument-select-field">
+            <span class="sr-only">String instrument</span>
+            <select id="instrument-select" aria-label="String instrument">
+              <option value="">Pads…</option>
+            </select>
+          </label>
         </div>
         <nav class="tabs" role="tablist">
           <button class="tab active" data-tab="library" role="tab" aria-selected="true">Library</button>
           <button class="tab" data-tab="progressions" role="tab" aria-selected="false">Progressions</button>
           <button class="tab" data-tab="song" role="tab" aria-selected="false">Song Builder</button>
-          <button class="tab" data-tab="pads" role="tab" aria-selected="false">Pads</button>
-          <button class="tab" data-tab="play" role="tab" aria-selected="false">Pad Player</button>
+          <button class="tab" data-tab="pads" role="tab" aria-selected="false" id="tab-pads">Pads</button>
+          <button class="tab" data-tab="play" role="tab" aria-selected="false" id="tab-play">Pad Player</button>
         </nav>
       </div>
     </header>
@@ -55,6 +63,10 @@
         <div class="field">
           <label for="color-select">Color</label>
           <div class="color-row" id="library-colors"></div>
+        </div>
+        <div class="field capo-field" id="library-capo-field" hidden>
+          <label for="library-capo">Capo</label>
+          <input id="library-capo" type="number" min="0" max="12" step="1" value="0" />
         </div>
       </div>
 
@@ -126,6 +138,14 @@
           <label for="song-tempo">Tempo (BPM)</label>
           <input id="song-tempo" type="number" min="40" max="240" step="1" value="100" />
         </div>
+        <div class="field capo-field" id="song-chord-capo-field" hidden>
+          <label for="song-chord-capo">Chord capo</label>
+          <input id="song-chord-capo" type="number" min="0" max="12" step="1" value="0" />
+        </div>
+        <div class="field capo-field" id="song-scale-capo-field" hidden>
+          <label for="song-scale-capo">Scale capo</label>
+          <input id="song-scale-capo" type="number" min="0" max="12" step="1" value="0" />
+        </div>
         <button type="button" class="btn" id="btn-save-song">Save</button>
         <button type="button" class="btn" id="btn-new-song">New</button>
         <button type="button" class="btn" id="btn-delete-song">Delete</button>
@@ -148,23 +168,26 @@
       <div class="song-legend" id="song-legend"></div>
     </section>
 
-    <!-- PAD MAP EDITOR -->
+    <!-- PAD / TUNING EDITOR -->
     <section id="panel-pads" class="panel" role="tabpanel" hidden>
       <div class="toolbar">
-        <p class="hint inline pads-intro">
+        <p class="hint inline pads-intro" id="pads-intro">
           Assign a note to each pad. Defaults are chromatic from <strong>C3</strong> (Pad 1).
           Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4 and 2×4) in localStorage.
         </p>
       </div>
-      <div class="toolbar secondary">
+      <div class="toolbar secondary" id="pads-reset-row">
         <button type="button" class="btn" id="btn-pads-reset-c3">Reset chromatic from C3</button>
         <button type="button" class="btn" id="btn-pads-reset-c2">From C2</button>
         <button type="button" class="btn" id="btn-pads-reset-c4">From C4 (middle C)</button>
       </div>
+      <div class="toolbar secondary" id="tuning-reset-row" hidden>
+        <button type="button" class="btn" id="btn-tuning-reset">Reset standard tuning</button>
+      </div>
       <div id="pads-editor" class="pads-editor"></div>
     </section>
 
-    <!-- PAD PLAYER -->
+    <!-- PAD / STRING PLAYER -->
     <section id="panel-play" class="panel" role="tabpanel" hidden>
       <div class="toolbar">
         <div class="field">
@@ -186,13 +209,13 @@
             <option value="square">Square</option>
           </select>
         </div>
-        <p class="hint inline">Click pads to play their mapped notes. Library selection is highlighted.</p>
+        <p class="hint inline" id="player-hint">Click pads to play their mapped notes. Library selection is highlighted.</p>
       </div>
       <div class="player-wrap">
         <div class="big-grid" id="player-grid"></div>
         <div class="player-side">
-          <h2>Live pads</h2>
-          <p>Notes come from your Pads map.</p>
+          <h2 id="player-side-title">Live pads</h2>
+          <p id="player-side-desc">Notes come from your Pads map.</p>
           <div id="player-chord-ref"></div>
         </div>
       </div>
@@ -200,12 +223,13 @@
 
     <footer class="footer">
       <p>
-        Pad notes are editable · songs &amp; maps save in localStorage · serve over HTTP.
+        Pad notes &amp; tunings are editable · songs &amp; maps save in localStorage · serve over HTTP.
       </p>
     </footer>
   </div>
 
   <script src="lib/music.js"></script>
+  <script src="lib/strings.js"></script>
   <script src="progressions.js"></script>
   <script src="app.js"></script>
 </body>

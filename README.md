@@ -8,14 +8,15 @@ Isomorphic pad charts for controllers — **iso** (same shapes in every key) + *
 
 Chord and scale charts for **pad controllers**. Map each pad to any note, then browse chords, scales, and progressions that light the right pads automatically.
 
-Supports two layouts:
+Supports pad layouts and string instruments:
 
-| Layout | Pads | Controllers |
-|---|---|---|
-| **4×4** | 16 | Akai MPD218, MPC pads, and similar |
-| **2×4** | 8 | Akai LPD8, Korg nanoPAD, and similar |
+| Mode | Details |
+|---|---|
+| **4×4** | 16 pads — MPD218, MPC, and similar |
+| **2×4** | 8 pads — LPD8, nanoPAD, and similar |
+| **Strings** | Guitar, bass (4/5), ukulele, mandolin, banjo, violin, viola, cello, double bass |
 
-Toggle the layout anytime. Each layout has its own saved pad note map.
+Toggle pads in the header, or pick a string instrument from the dropdown. Pad maps and string tunings save separately. On strings, charts are **fretboard / fingerboard diagrams** (not the pad grid). Songs can set a **chord capo** and a separate **scale capo**.
 
 ## Screenshots
 
@@ -29,40 +30,42 @@ Pick any root and chord type (here **Cmaj7**). Every chord-tone pad lights up; a
 
 ![Progressions browser with Axis / pop-punk and other loops](screenshots/02-progressions.png)
 
-Browse **64** progressions in any key — Pop, Blues, Jazz, Rock, Gospel, and more. Color chips preview the chord string at a glance (same chord type → same color when loaded). **Load**, **Append**, or **Preview** without leaving the page. Perfect for dropping a 12-bar blues or I–V–vi–IV into the Song Builder in one click.
+Browse **64** progressions in any key — Pop, Blues, Jazz, Rock, Gospel, and more. Color chips preview the chord string at a glance (same chord type → same color when loaded). **Add to Song**, **Replace song**, or **Preview** (loops) without leaving the page.
 
-### Song Builder — color-coded bars + scale overlay
+### Song Builder — sections, tempo, loop
 
 ![Song Builder with I–V–vi–IV and C Aeolian overlay](screenshots/03-song-builder.png)
 
-Build a full progression as a strip of pad charts. Here the classic **I–V–vi–IV** in C shows four colors so repeated chords stay obvious (great for blues and pop loops). Overlay a scale (e.g. **C Aeolian**) above the song to practice leads on the same board. Reorder bars, play the progression, or **Print** a clean setlist.
+Songs are built from **progression sections** (verse, chorus, bridge…). Drag sections to rearrange, set tempo, and play — playback **loops** until you stop. On string instruments, set **chord capo** and **scale capo** separately.
 
 ### Pads — map every note to your hardware
 
 ![Pads editor with chromatic C3 map and middle C tagged](screenshots/04-customize-pads.png)
 
-No more assuming Pad 1 is C. Assign **note + octave** to each pad, audition with ▶, and reset to chromatic from **C3**, **C2**, or **C4**. Piano **middle C (C4)** is tagged when it appears. Maps save per layout in `localStorage` — change the map once, and every chord, scale, and song updates automatically.
+No more assuming Pad 1 is C. Assign **note + octave** to each pad, audition with ▶, and reset to chromatic from **C3**, **C2**, or **C4**. In string mode this tab becomes **Tuning** for open strings.
 
 ### Pad Player — jam the live grid
 
 ![Pad Player with Cmaj7 highlighted on the live 4×4](screenshots/05-pad-player.png)
 
-Click pads to play their mapped notes in the browser. Your Library selection (here **Cmaj7**) stays highlighted on the big grid with the same primary-border logic, so practice matches the chart. Transpose and tone controls are right there for quick auditioning.
+Click pads to play their mapped notes in the browser. In string mode, pluck open strings instead.
 
 ### 2×4 mode — LPD8 / nanoPAD ready
 
 ![Song Builder on 2×4 layout for eight-pad controllers](screenshots/06-layout-2x4.png)
 
-Flip the header to **2×4** and the whole app shrinks to eight pads — same songs, same colors, same overlays, recomputed for the smaller board. Ideal for Akai LPD8, Korg nanoPAD, and anything with two rows of four.
+Flip the header to **2×4** and the whole app shrinks to eight pads — same songs, same colors, same overlays, recomputed for the smaller board.
 
 ## Features
 
 - **Pads editor** — assign note + octave to every pad (defaults: chromatic from **C3**; piano middle C is **C4**)
-- **Chord library** — triads through jazz extensions; all chord tones lit, primary voicing bordered
-- **Scales & modes** — lights every in-scale pad on your board
+- **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning
+- **Capo** — song-level chord capo; separate scale capo for leads / overlay
+- **Chord library** — triads through jazz extensions; pad lights or fret diagrams
+- **Scales & modes** — lights every in-scale pad, or a scale box on the fingerboard
 - **Progressions** — 60+ stock progressions grouped by genre
-- **Song Builder** — color-coded bars, scale overlay, `localStorage`, print
-- **Pad Player** — click pads to hear mapped notes; optional transpose
+- **Song Builder** — sections of progressions, tempo, looping preview, scale overlay, print
+- **Pad / string player** — click pads or pluck open strings; optional transpose
 - **4×4 and 2×4 layouts** — switch anytime; each keeps its own pad map
 
 ## Requirements
