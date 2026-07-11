@@ -1,6 +1,6 @@
 # IsoPad Studio
 
-**Look up chords, scales, modes, and progressions** for pad controllers and string instruments — then see exactly which pads or frets to play.
+**Look up chords, scales, modes, and progressions** for pad controllers and string instruments — then see exactly which pads or frets to play. There’s also a free **chromatic tuner** in the header so you can tune before you practice, right in the browser.
 
 Built for people with gear like:
 
@@ -42,11 +42,13 @@ For architecture, data shapes, UI contracts, and agent instructions, see **[SPEC
 
 ## Screenshots
 
-![C Hungarian Minor on a 4×4 pad grid in the Library](screenshots/readme-pads-4x4.png)
+![A Blues on a 4×4 pad grid in the Library](screenshots/readme-pads-4x4.png)
 
-![C Hungarian Minor on 6-string guitar (standard EADGBE) in the Library](screenshots/readme-guitar.png)
+![A Blues on 6-string guitar (standard EADGBE) in the Library](screenshots/readme-guitar.png)
 
-Same scale on **Pads · 4×4**, then **Strings · Guitar** (standard tuning) — pick a formula, see the chart, click to hear it. More walkthroughs: **[User manual](MANUAL.md)**.
+![Chromatic tuner popup showing A♯3](screenshots/readme-tuner.png)
+
+Same scale on **Pads · 4×4**, then **Strings · Guitar**, plus the **Tuner** popup (mic stays in your browser). More walkthroughs: **[User manual](MANUAL.md)**.
 
 ## Features
 
