@@ -32,6 +32,7 @@ describe("resolveChordShape guitar", () => {
   it("returns open C major shape", () => {
     const shape = S.resolveChordShape("guitar6", "C", [0, 4, 7], 0);
     assert.deepEqual(shape.absoluteFrets, [null, 3, 2, 0, 1, 0]);
+    assert.deepEqual(shape.fingers, [null, 3, 2, null, 1, null]);
     assert.ok(shape.midis.length >= 3);
     assert.deepEqual(shape.missing, []);
   });
@@ -83,6 +84,29 @@ describe("resolveScaleDiagram", () => {
     const open = S.resolveScaleDiagram("guitar6", "C", [0, 2, 4, 5, 7, 9, 11], 0);
     const capo2 = S.resolveScaleDiagram("guitar6", "C", [0, 2, 4, 5, 7, 9, 11], 2);
     assert.notEqual(open.midis[0], capo2.midis[0]);
+  });
+});
+
+describe("guitar tunings", () => {
+  it("uses uppercase E for both outer strings in standard names", () => {
+    const names = S.INSTRUMENTS.guitar6.stringNames;
+    assert.deepEqual(names, ["E", "A", "D", "G", "B", "E"]);
+  });
+
+  it("includes Drop D and summarizes tunings", () => {
+    const drop = S.applyPreset("guitar6", "dropD");
+    assert.equal(S.tuningSummary(drop), "DADGBE");
+    assert.equal(S.matchPresetId("guitar6", drop), "dropD");
+    assert.equal(S.isStandardTuning("guitar6", drop), false);
+    assert.equal(S.isStandardTuning("guitar6", S.defaultTuning("guitar6")), true);
+  });
+
+  it("coerces a reversed standard tuning back to EADGBE", () => {
+    const reversed = S.defaultTuning("guitar6").slice().reverse();
+    assert.equal(S.tuningSummary(reversed), "EBGDAE");
+    const fixed = S.coerceTuningOrder(reversed, "guitar6");
+    assert.equal(S.tuningSummary(fixed), "EADGBE");
+    assert.equal(S.isStandardTuning("guitar6", fixed), true);
   });
 });
 

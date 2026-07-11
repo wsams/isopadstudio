@@ -11,34 +11,55 @@
 </head>
 <body>
   <div class="app">
-    <header class="header">
-      <div class="brand">
-        <span class="brand-mark">16</span>
-        <div>
-          <h1>IsoPad Studio</h1>
-          <p class="tagline">Chord &amp; scale charts for pads and string instruments</p>
+    <header class="header" id="app-header">
+      <div class="header-top">
+        <div class="brand">
+          <span class="brand-mark">16</span>
+          <div>
+            <h1>IsoPad Studio</h1>
+            <p class="tagline">Chords, scales &amp; progressions for pad controllers and string instruments</p>
+          </div>
+        </div>
+        <div class="header-controls">
+          <div class="family-toggle" id="instrument-switch" role="group" aria-label="Pads or strings" data-family="pads">
+            <button type="button" class="family-btn active" data-family="pads" id="family-pads">
+              <span class="family-glyph" aria-hidden="true"><span class="glyph-pads"></span></span>
+              <span class="family-name">Pads</span>
+            </button>
+            <button type="button" class="family-btn" data-family="strings" id="family-strings">
+              <span class="family-glyph" aria-hidden="true"><span class="glyph-strings"></span></span>
+              <span class="family-name">Strings</span>
+            </button>
+            <span class="family-glider" aria-hidden="true"></span>
+          </div>
+          <nav class="tabs" role="tablist">
+            <button class="tab active" data-tab="library" role="tab" aria-selected="true">Library</button>
+            <button class="tab" data-tab="progressions" role="tab" aria-selected="false">Progressions</button>
+            <button class="tab" data-tab="song" role="tab" aria-selected="false">Song Builder</button>
+            <button class="tab" data-tab="pads" role="tab" aria-selected="false" id="tab-pads">Pads</button>
+            <button class="tab" data-tab="play" role="tab" aria-selected="false" id="tab-play">Pad Player</button>
+          </nav>
         </div>
       </div>
-      <div class="header-controls">
-        <div class="instrument-picker">
-          <div class="layout-toggle" role="group" aria-label="Pad layout">
-            <button type="button" class="layout-btn active" data-instrument="4x4" title="16 pads — MPD218, MPC, etc.">4×4</button>
-            <button type="button" class="layout-btn" data-instrument="2x4" title="8 pads — LPD8, nanoPAD, etc.">2×4</button>
+
+      <div class="instrument-tray" aria-live="polite">
+        <div class="option-panel active" id="pad-options" data-panel="pads">
+          <span class="tray-label">Layout</span>
+          <div class="option-toggle" role="group" aria-label="Pad layout">
+            <button type="button" class="option-btn active" data-instrument="4x4" title="MPD218, MPC pads, and similar">
+              <span class="option-title">4×4</span>
+              <span class="option-meta">16 pads</span>
+            </button>
+            <button type="button" class="option-btn" data-instrument="2x4" title="LPD8, nanoPAD, and similar">
+              <span class="option-title">2×4</span>
+              <span class="option-meta">8 pads</span>
+            </button>
           </div>
-          <label class="field instrument-select-field">
-            <span class="sr-only">String instrument</span>
-            <select id="instrument-select" aria-label="String instrument">
-              <option value="">Pads…</option>
-            </select>
-          </label>
         </div>
-        <nav class="tabs" role="tablist">
-          <button class="tab active" data-tab="library" role="tab" aria-selected="true">Library</button>
-          <button class="tab" data-tab="progressions" role="tab" aria-selected="false">Progressions</button>
-          <button class="tab" data-tab="song" role="tab" aria-selected="false">Song Builder</button>
-          <button class="tab" data-tab="pads" role="tab" aria-selected="false" id="tab-pads">Pads</button>
-          <button class="tab" data-tab="play" role="tab" aria-selected="false" id="tab-play">Pad Player</button>
-        </nav>
+        <div class="option-panel" id="string-options" data-panel="strings" hidden>
+          <span class="tray-label">Instrument</span>
+          <div class="string-chip-row" id="string-chip-row" role="group" aria-label="String instrument"></div>
+        </div>
       </div>
     </header>
 
@@ -68,7 +89,7 @@
           <label for="library-capo">Capo</label>
           <input id="library-capo" type="number" min="0" max="12" step="1" value="0" />
         </div>
-        <div class="field">
+        <div class="field" id="library-tempo-field" hidden>
           <label for="library-tempo">Tempo (BPM)</label>
           <input id="library-tempo" type="number" min="40" max="240" step="1" value="100" />
         </div>
@@ -186,7 +207,7 @@
         <button type="button" class="btn" id="btn-pads-reset-c4">From C4 (middle C)</button>
       </div>
       <div class="toolbar secondary" id="tuning-reset-row" hidden>
-        <button type="button" class="btn" id="btn-tuning-reset">Reset standard tuning</button>
+        <button type="button" class="btn" id="btn-tuning-reset">Reset to instrument default</button>
       </div>
       <div id="pads-editor" class="pads-editor"></div>
     </section>

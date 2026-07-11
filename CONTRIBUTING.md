@@ -2,6 +2,8 @@
 
 Thanks for helping improve this project. It is a small, dependency-free static web app — keep changes focused and easy to run with `python3 -m http.server`.
 
+**Agents and contributors:** read **[SPECS.md](SPECS.md)** before changing product behavior, and update that file in the same PR whenever specs change.
+
 ## Development setup
 
 1. Fork and clone the repository.
@@ -19,7 +21,9 @@ Thanks for helping improve this project. It is a small, dependency-free static w
    npm test
    ```
 
-There is no build step to run the app. Edit `index.html`, `app.css`, `app.js`, and `progressions.js` directly.
+5. If your change affects behavior described in **[SPECS.md](SPECS.md)**, update that file in the same PR.
+
+There is no build step to run the app. Edit `index.html`, `app.css`, `app.js`, `lib/*`, and `progressions.js` directly.
 
 ## What to work on
 

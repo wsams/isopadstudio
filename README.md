@@ -1,64 +1,39 @@
 # IsoPad Studio
 
-You don’t need to install anything. Open the app in your browser:
+**Look up chords, scales, modes, and progressions** for pad controllers and string instruments — then see exactly which pads or frets to play.
 
-**[https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html)**
+Built for people with gear like:
+
+- **Akai** MPD218, MPD226, LPD8, MPC pads, and similar 4×4 / 2×4 controllers  
+- **Korg** nanoPAD / nanoPAD2  
+- Other MPC-style and grid pad controllers with 8 or 16 pads  
+
+…and also for **string players**: guitar, bass, ukulele, mandolin, banjo, violin, viola, cello, and double bass.
+
+The idea is simple. Many of these instruments are *isomorphic* — once you learn a shape, you can move it to play in another key. IsoPad Studio shows those shapes as charts you can hear, save into songs, and print. New to that idea? Browse a chord or scale and click to hear it. Already deep into theory? There’s a large library of qualities, modes, and stock progressions by genre.
+
+**Use it in your browser — nothing to install:**  
+[https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html)
 
 Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isopadstudio)
 
-Isomorphic pad charts for controllers — **iso** (same shapes in every key) + **pad** + **studio** (chords, scales, songs, and your own note map).
-
-> Learn one chord shape. Play it in every key. Charts, scales, and songs for MPD / LPD / MPC-style pads.
-
-Chord and scale charts for **pad controllers** and string instruments. Map each pad (or string tuning) to your setup, then browse chords, scales, and progressions that light the right notes automatically.
-
-Supports pad layouts and string instruments:
-
-| Mode | Details |
+| Mode | Good for |
 |---|---|
-| **4×4** | 16 pads — MPD218, MPC, and similar |
-| **2×4** | 8 pads — LPD8, nanoPAD, and similar |
-| **Strings** | Guitar, bass (4/5), ukulele, mandolin, banjo, violin, viola, cello, double bass |
+| **4×4 (16 pads)** | Akai MPD218 / MPD226, MPC-style pads, and similar |
+| **2×4 (8 pads)** | Akai LPD8, compact pad controllers |
+| **Strings** | Guitar, bass (4/5), uke, mandolin, banjo, violin family |
 
-Toggle pads in the header, or pick a string instrument from the dropdown. Pad maps and string tunings save separately. On strings, charts are **fretboard / fingerboard diagrams** (not the pad grid). Songs can set a **chord capo** and a separate **scale capo**.
+Pick your instrument in the header. Pads light up on a grid; strings show fretboard / fingerboard charts. Map your own pad notes or open-string tuning. Songs can use a **chord capo** and a separate **scale capo**.
 
-## Screenshots
+For walkthroughs and more screenshots, see the **[User manual](MANUAL.md)**.
 
-### Chord library — see the shape, hear the voicing
+For architecture, data shapes, UI contracts, and agent instructions, see **[SPECS.md](SPECS.md)** (keep it updated when behavior changes).
 
-![Cmaj7 on a 4×4 pad grid in the Library](screenshots/01-chord-library.png)
+## Screenshot
 
-Pick any root and chord type (here **Cmaj7**). Every chord-tone pad lights up; a **bright border** marks the primary voicing (C3 · E3 · G3 · B3). The octave C4 stays lit so you still see it on the board — without stealing focus from the shape you’ll actually play. Click the chart to hear it; hit **Add to Song** when it’s a keeper.
+![G major on a 4×4 pad grid in the Library](screenshots/01-library-pads-4x4-chord.png)
 
-### Progressions — 60+ stock forms by genre
-
-![Progressions browser with Axis / pop-punk and other loops](screenshots/02-progressions.png)
-
-Browse **64** progressions in any key — Pop, Blues, Jazz, Rock, Gospel, and more. Color chips preview the chord string at a glance (same chord type → same color when loaded). **Add to Song**, **Replace song**, or **Preview** (loops) without leaving the page.
-
-### Song Builder — sections, tempo, loop
-
-![Song Builder with I–V–vi–IV and C Aeolian overlay](screenshots/03-song-builder.png)
-
-Songs are built from **progression sections** (verse, chorus, bridge…). Drag sections to rearrange, set tempo, and play — playback **loops** until you stop. On string instruments, set **chord capo** and **scale capo** separately.
-
-### Pads — map every note to your hardware
-
-![Pads editor with chromatic C3 map and middle C tagged](screenshots/04-customize-pads.png)
-
-No more assuming Pad 1 is C. Assign **note + octave** to each pad, audition with ▶, and reset to chromatic from **C3**, **C2**, or **C4**. In string mode this tab becomes **Tuning** for open strings.
-
-### Pad Player — jam the live grid
-
-![Pad Player with Cmaj7 highlighted on the live 4×4](screenshots/05-pad-player.png)
-
-Click pads to play their mapped notes in the browser. In string mode, pluck open strings instead.
-
-### 2×4 mode — LPD8 / nanoPAD ready
-
-![Song Builder on 2×4 layout for eight-pad controllers](screenshots/06-layout-2x4.png)
-
-Flip the header to **2×4** and the whole app shrinks to eight pads — same songs, same colors, same overlays, recomputed for the smaller board.
+Library on **Pads · 4×4**: pick a chord (here **Gmaj**), see which pads light up, click to hear it — then open **Pad Player** to tap each note. More walkthroughs: **[User manual](MANUAL.md)**.
 
 ## Features
 
@@ -69,7 +44,7 @@ Flip the header to **2×4** and the whole app shrinks to eight pads — same son
 - **Scales & modes** — lights every in-scale pad, or a scale box on the fingerboard
 - **Progressions** — 60+ stock progressions grouped by genre
 - **Song Builder** — sections of progressions, tempo, looping preview, scale overlay, print
-- **Pad / string player** — click pads or pluck open strings; optional transpose
+- **Pad / string player** — Library selection loads on the live grid so you can play each note; optional transpose
 - **4×4 and 2×4 layouts** — switch anytime; each keeps its own pad map
 
 ## Requirements
@@ -126,39 +101,25 @@ Or host the folder on Apache, nginx, GitHub Pages, Netlify, etc. — no backend 
 
 ## How to use
 
+See the **[User manual](MANUAL.md)** for screenshots and walkthroughs. Short version:
+
 ### Layout toggle
 
-Use **4×4** / **2×4** in the header. The badge shows `16` or `8`.
+Use **4×4** / **2×4** in the header. The badge shows `16` or `8`. Pick a string instrument from the dropdown when you want fretboard charts.
 
 ### Pads (important)
 
-Open the **Pads** tab and set what each pad plays:
+Open the **Pads** tab and set what each pad plays. Maps are stored **per layout** in `localStorage`. In string mode this tab is **Tuning**.
 
-- Default: chromatic half-steps starting at **C3** on Pad 1 (same idea as a typical MPD chromatic map)
-- **Middle C** on a piano is **C4** — when a pad is C4 it shows a “middle C” tag
-- Presets: reset chromatic from **C3**, **C2**, or **C4**
-- Click ▶ on a pad to audition
-- Maps are stored **per layout** in `localStorage`
+### Library → Pad Player
 
-After you change the map, every chord, scale, progression, and song chart updates to match.
+1. Choose root, Chords or Scales, and a formula; click the chart to hear it.
+2. Open **Pad Player** — that selection stays highlighted so you can tap each note on the live grid.
+3. **Add to Song** when you want it in a progression.
 
-### Library
+### Progressions & Song Builder
 
-1. Choose root, Chords or Scales, and a formula.
-2. Click the chart to hear it.
-3. **Add to Song** with a color; **Show all roots** for every key.
-
-### Progressions
-
-Pick a key, filter by genre, **Preview**, then **Load** or **Append** into the Song Builder.
-
-### Song Builder
-
-Reorder bars, overlay a scale, save songs, print a setlist.
-
-### Pad Player
-
-Play the live grid using your mapped notes. Optional transpose for auditioning.
+Preview looping progressions, add them as sections, set tempo, overlay a scale, save and print.
 
 ## Project layout
 
@@ -168,10 +129,13 @@ isopadstudio/
 ├── app.css
 ├── app.js
 ├── lib/music.js      # Shared pad/chord math (tested)
+├── lib/strings.js    # String instruments, capo, fingerings
 ├── progressions.js
-├── screenshots/      # README gallery
+├── screenshots/      # Used by MANUAL.md (and one hero shot in README)
 ├── test/             # node:test suite (`npm test`)
 ├── README.md
+├── MANUAL.md         # User guide + screenshot gallery
+├── SPECS.md          # Architecture + agent contracts (update with code)
 ├── LICENSE
 └── CONTRIBUTING.md
 ```

@@ -149,6 +149,8 @@
   const ACTIVE_KEY = "isopadstudio.activeSongId";
   const LAYOUT_KEY = "isopadstudio.layout";
   const INSTRUMENT_KEY = "isopadstudio.instrument";
+  const LAST_PAD_KEY = "isopadstudio.lastPad";
+  const LAST_STRING_KEY = "isopadstudio.lastString";
   const PADMAP_KEY = "isopadstudio.padMaps.v1";
   const TUNING_KEY = "isopadstudio.tunings.v1";
   const LEGACY_KEYS = {
@@ -188,6 +190,20 @@
     if (fromInst && (LAYOUTS[fromInst] || S.isStringInstrument(fromInst))) return fromInst;
     const raw = localStorage.getItem(LAYOUT_KEY) || LEGACY_KEYS.layout.map((k) => localStorage.getItem(k)).find(Boolean);
     return LAYOUTS[raw] ? raw : "4x4";
+  }
+
+  function loadLastPadInstrument() {
+    const raw = localStorage.getItem(LAST_PAD_KEY);
+    if (LAYOUTS[raw]) return raw;
+    const current = loadSavedInstrument();
+    return LAYOUTS[current] ? current : "4x4";
+  }
+
+  function loadLastStringInstrument() {
+    const raw = localStorage.getItem(LAST_STRING_KEY);
+    if (S.isStringInstrument(raw)) return raw;
+    const current = loadSavedInstrument();
+    return S.isStringInstrument(current) ? current : "guitar6";
   }
 
   function isStringMode() {
@@ -231,9 +247,20 @@
     try {
       const parsed = JSON.parse(localStorage.getItem(TUNING_KEY) || "{}");
       const out = {};
+      let fixed = false;
       S.listInstruments().forEach((inst) => {
-        out[inst.id] = S.normalizeTuning(parsed[inst.id], inst.id);
+        const coerced = S.coerceTuningOrder(parsed[inst.id], inst.id);
+        const raw = S.normalizeTuning(parsed[inst.id], inst.id);
+        if (!S.tuningsEqual(coerced, raw)) fixed = true;
+        out[inst.id] = coerced;
       });
+      if (fixed) {
+        try {
+          localStorage.setItem(TUNING_KEY, JSON.stringify(out));
+        } catch {
+          /* ignore quota */
+        }
+      }
       return out;
     } catch {
       const out = {};
@@ -254,7 +281,14 @@
 
   function persistInstrument() {
     localStorage.setItem(INSTRUMENT_KEY, state.instrument);
-    if (!isStringMode()) localStorage.setItem(LAYOUT_KEY, state.instrument);
+    if (!isStringMode()) {
+      localStorage.setItem(LAYOUT_KEY, state.instrument);
+      localStorage.setItem(LAST_PAD_KEY, state.instrument);
+      state.lastPadInstrument = state.instrument;
+    } else {
+      localStorage.setItem(LAST_STRING_KEY, state.instrument);
+      state.lastStringInstrument = state.instrument;
+    }
   }
 
   function getPadMap() {
@@ -265,7 +299,13 @@
   function getTuning() {
     const id = state.instrument;
     if (!S.isStringInstrument(id)) return [];
-    return state.tunings[id] || S.defaultTuning(id);
+    if (!state.tunings[id]) state.tunings[id] = S.defaultTuning(id);
+    const coerced = S.coerceTuningOrder(state.tunings[id], id);
+    if (!S.tuningsEqual(coerced, state.tunings[id])) {
+      state.tunings[id] = coerced;
+      persistTunings();
+    }
+    return coerced.slice();
   }
 
   function getChordCapo() {
@@ -644,6 +684,8 @@
   // --- State ---
   const state = {
     instrument: loadSavedInstrument(),
+    lastPadInstrument: loadLastPadInstrument(),
+    lastStringInstrument: loadLastStringInstrument(),
     padMaps: loadPadMaps(),
     tunings: loadTunings(),
     kind: "chord",
@@ -851,36 +893,52 @@
     if (!inst) return el("div", { class: "fretboard" });
     const style = inst.style || "fretted";
     const stringCount = inst.strings;
-    // Same 4-fret frame for chords and scales
     const fretsShown = diagram.fretsShown || 4;
     const baseFret = diagram.baseFret || 1;
     const capo = diagram.capo || 0;
+    // Live Tuning-tab order is stored low → high; charts draw high string at top
+    const tuning = getTuning();
+    const labels = S.tuningNoteNames(tuning.length === stringCount ? tuning : inst.openMidi);
+    const tuningLabel = S.tuningSummary(tuning.length === stringCount ? tuning : inst.openMidi);
 
     const board = el("div", {
       class: `fretboard ${style}${isScale ? " scale" : " chord"}`,
       style: { "--strings": String(stringCount), "--frets": String(fretsShown) },
+      title: tuningLabel ? `Open tuning ${tuningLabel} · high string at top` : "",
     });
 
     const meta = el("div", { class: "fret-meta" });
+    if (tuningLabel) {
+      meta.appendChild(el("span", { class: "fret-tuning-badge" }, tuningLabel));
+      meta.appendChild(el("span", { class: "fret-orient-label" }, "high ↑"));
+    }
     if (capo > 0) meta.appendChild(el("span", { class: "fret-capo-badge" }, `Capo ${capo}`));
     if (baseFret > 1) meta.appendChild(el("span", { class: "fret-base-label" }, `${baseFret}fr`));
     if (meta.childNodes.length) board.appendChild(meta);
 
     const grid = el("div", { class: "fret-grid" });
-    for (let s = 0; s < stringCount; s++) {
-      const stringRow = el("div", { class: "fret-string-row", "data-string": String(s) });
-      stringRow.appendChild(el("span", { class: "fret-string-name" }, inst.stringNames[s] || ""));
-
-      // Nut column: ○ open, × muted (chords), blank if unused — same for scales (○ = open scale tone)
+    // Top → bottom = high → low (standard chord charts; EADGBE reads bottom → top)
+    for (let s = stringCount - 1; s >= 0; s--) {
       let nutMark = "";
+      let muted = false;
       if (isScale && diagram.dots) {
         const openHit = diagram.dots.find((d) => d.string === s && d.fret === 0);
         if (openHit) nutMark = "○";
       } else if (diagram.frets) {
         const f = diagram.frets[s];
-        if (f == null) nutMark = "×";
-        else if (f === 0) nutMark = "○";
+        if (f == null) {
+          nutMark = "×";
+          muted = true;
+        } else if (f === 0) {
+          nutMark = "○";
+        }
       }
+
+      const stringRow = el("div", {
+        class: `fret-string-row${muted ? " muted" : ""}`,
+        "data-string": String(s),
+      });
+      stringRow.appendChild(el("span", { class: "fret-string-name" }, labels[s] || ""));
       stringRow.appendChild(el("span", { class: "fret-nut-mark" }, nutMark));
 
       const cells = el("div", { class: "fret-cells" });
@@ -902,11 +960,12 @@
         } else if (diagram.frets) {
           const f = diagram.frets[s];
           if (f === fretPos) {
+            const finger = diagram.fingers?.[s];
             cell.appendChild(
               el("span", {
                 class: `fret-dot${diagram.barre === f ? " barre" : ""}`,
                 style: { background: color },
-              })
+              }, finger != null ? String(finger) : "")
             );
           }
         }
@@ -1068,12 +1127,16 @@
     });
 
     const entry = getDict(state.kind)[state.formula];
+    if (!entry) return;
     const title = displayTitle(state.root, state.formula, entry);
     const preview = document.getElementById("library-preview");
     preview.innerHTML = "";
 
     const libCapoField = document.getElementById("library-capo-field");
     if (libCapoField) libCapoField.hidden = !isStringMode();
+
+    const libTempoField = document.getElementById("library-tempo-field");
+    if (libTempoField) libTempoField.hidden = state.kind !== "scale";
 
     if (isStringMode()) {
       const isScale = state.kind === "scale";
@@ -1094,9 +1157,10 @@
       if (missing.length) {
         hint.textContent = `Hard to cover on this tuning: ${missing.join(", ")}. Try another voicing root or edit Tuning.`;
       } else {
+        const tuningName = S.tuningSummary(getTuning()) || "current tuning";
         hint.textContent = isScale
-          ? "Scale tones on the fingerboard (capo applies to scales separately from chords in Song Builder). Click to hear ascending."
-          : "Standard-style chord chart. Capo frets are relative to the capo. Click to hear the voicing.";
+          ? `Scale tones for ${tuningName} (capo applies to scales separately from chords in Song Builder). Click to hear ascending. Open the Strings tab to practice open strings alongside this selection.`
+          : `Chord chart for ${tuningName}. Capo frets are relative to the capo. Click to hear the voicing. Open the Strings tab to see this selection while you pluck open strings.`;
       }
     } else {
       const { pads, primaryPads, missing, rootIndex } = getActivePads(state.root, entry.intervals, {
@@ -1118,8 +1182,8 @@
         hint.textContent = `Missing on this pad map: ${missing.join(", ")}. Assign those notes in the Pads tab, or pick a different root.`;
       } else {
         hint.textContent = state.kind === "scale"
-          ? "Every pad whose note is in the scale is lit (using your Pads map). Click to hear ascending by pitch. Root pad is outlined."
-          : "All chord-tone pads are lit. Bright border = primary voicing (first instance of each tone). Click to hear that voicing.";
+          ? "Every pad whose note is in the scale is lit. Click to hear ascending. Tip: open Pad Player — this scale stays highlighted so you can tap each tone individually."
+          : "All chord-tone pads are lit; bright border = primary voicing. Click to hear it. Tip: open Pad Player — this chord loads on the live grid so you can play each note separately.";
       }
     }
 
@@ -1639,7 +1703,7 @@
               onClick: () => playTone(0, ensureAudio().currentTime, 0.55, { midi, peak: 0.22 }),
             },
             [
-              el("span", { class: "string-pluck-name" }, inst.stringNames[i] || `S${i + 1}`),
+              el("span", { class: "string-pluck-name" }, S.tuningNoteNames(tuning)[i] || `S${i + 1}`),
               el("span", { class: "string-pluck-note" }, midiToLabel(midi)),
             ]
           )
@@ -1666,7 +1730,10 @@
         const layout = currentLayout();
         descEl.textContent = `${layout.label} — notes come from your Pads map (Pad 1 = ${midiToLabel(map[0])}). Edit them in the Pads tab.`;
       }
-      if (hintEl) hintEl.textContent = "Click pads to play their mapped notes. Library selection is highlighted.";
+      if (hintEl) {
+        hintEl.textContent =
+          "Your Library selection stays highlighted. Click lit pads to hear each note; use transpose if you want a different register.";
+      }
     }
     renderPlayerRef();
   }
@@ -1675,24 +1742,28 @@
     if (bar.root && bar.formula && bar.kind) {
       const entry = getDict(bar.kind)[bar.formula];
       if (entry) {
-        if (isStringMode()) {
-          const s = song || activeSong();
-          const isScale = bar.kind === "scale" || !!bar.isScale;
-          const capo = isScale ? (s?.scaleCapo ?? 0) : (s?.chordCapo ?? 0);
-          const diagram = resolveStringChart(bar.root, entry.intervals, { isScale, capo });
-          return {
-            ...bar,
-            diagram,
-            midis: diagram.midis,
-            pads: [],
-            primaryPads: [],
-            rootIndex: null,
-          };
+        try {
+          if (isStringMode()) {
+            const s = song || activeSong();
+            const isScale = bar.kind === "scale" || !!bar.isScale;
+            const capo = isScale ? (s?.scaleCapo ?? 0) : (s?.chordCapo ?? 0);
+            const diagram = resolveStringChart(bar.root, entry.intervals, { isScale, capo });
+            return {
+              ...bar,
+              diagram,
+              midis: diagram.midis,
+              pads: [],
+              primaryPads: [],
+              rootIndex: null,
+            };
+          }
+          const { pads, primaryPads, rootIndex } = getActivePads(bar.root, entry.intervals, {
+            fillBoard: bar.kind === "scale" || !!bar.isScale,
+          });
+          return { ...bar, pads, primaryPads, rootIndex, midis: null, diagram: null };
+        } catch (err) {
+          console.warn("Failed to reresolve bar", bar.root, bar.formula, err);
         }
-        const { pads, primaryPads, rootIndex } = getActivePads(bar.root, entry.intervals, {
-          fillBoard: bar.kind === "scale" || !!bar.isScale,
-        });
-        return { ...bar, pads, primaryPads, rootIndex, midis: null, diagram: null };
       }
     }
     if (isStringMode()) return { ...bar };
@@ -1710,25 +1781,74 @@
         bars: (section.bars || []).map((bar) => reresolveBar(bar, song)),
       }));
     });
-    persistSongs();
+    try {
+      persistSongs();
+    } catch (err) {
+      console.warn("Failed to persist songs after layout/tuning change", err);
+    }
+  }
+
+  function fillStringChips() {
+    const row = document.getElementById("string-chip-row");
+    if (!row || row.dataset.filled) return;
+    row.innerHTML = "";
+    S.listInstruments().forEach((inst) => {
+      row.appendChild(
+        el(
+          "button",
+          {
+            type: "button",
+            class: "string-chip",
+            "data-instrument": inst.id,
+            title: `${inst.label} · ${inst.strings} strings`,
+            onClick: () => setInstrument(inst.id),
+          },
+          inst.short || inst.label
+        )
+      );
+    });
+    row.dataset.filled = "1";
+  }
+
+  function setInstrumentFamily(family) {
+    if (family === "strings") {
+      setInstrument(state.lastStringInstrument || "guitar6");
+    } else {
+      setInstrument(state.lastPadInstrument || "4x4");
+    }
   }
 
   function updateInstrumentChrome() {
     const mark = document.querySelector(".brand-mark");
-    const sel = document.getElementById("instrument-select");
-    if (sel && !sel.dataset.filled) {
-      sel.innerHTML = "";
-      sel.appendChild(el("option", { value: "" }, "— pads —"));
-      S.listInstruments().forEach((inst) => {
-        sel.appendChild(el("option", { value: inst.id }, inst.label));
-      });
-      sel.dataset.filled = "1";
-    }
-    if (sel) sel.value = isStringMode() ? state.instrument : "";
+    const switcher = document.getElementById("instrument-switch");
+    const family = isStringMode() ? "strings" : "pads";
+    fillStringChips();
 
-    document.querySelectorAll(".layout-btn").forEach((btn) => {
+    if (switcher) switcher.dataset.family = family;
+
+    document.querySelectorAll(".family-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.family === family);
+    });
+
+    const padOptions = document.getElementById("pad-options");
+    const stringOptions = document.getElementById("string-options");
+    if (padOptions) {
+      padOptions.hidden = family !== "pads";
+      padOptions.classList.toggle("active", family === "pads");
+    }
+    if (stringOptions) {
+      stringOptions.hidden = family !== "strings";
+      stringOptions.classList.toggle("active", family === "strings");
+    }
+
+    document.querySelectorAll(".option-btn").forEach((btn) => {
       const id = btn.dataset.instrument;
       btn.classList.toggle("active", !isStringMode() && id === state.instrument);
+    });
+
+    document.querySelectorAll(".string-chip").forEach((btn) => {
+      const id = btn.dataset.instrument;
+      btn.classList.toggle("active", isStringMode() && id === state.instrument);
     });
 
     if (isStringMode()) {
@@ -1742,7 +1862,7 @@
       if (tabPlay) tabPlay.textContent = "Strings";
       const intro = document.getElementById("pads-intro");
       if (intro) {
-        intro.innerHTML = `Edit open-string tuning for <strong>${inst.label}</strong>. Capo is set per song (chord vs scale). Tunings save per instrument in localStorage.`;
+        intro.innerHTML = `Choose a preset (Standard, Drop D, …) or tune each open string. Labels on charts follow your tuning. Capo is set per song.`;
       }
       const padsReset = document.getElementById("pads-reset-row");
       const tuningReset = document.getElementById("tuning-reset-row");
@@ -1776,10 +1896,21 @@
         footer.textContent = `${layout.label} · Pad 1 = ${midiToLabel(map[0])} (editable in Pads) · songs & maps save in localStorage · serve over HTTP.`;
       }
     }
+
+    // Capo only applies to string instruments
+    const showCapo = isStringMode();
+    ["library-capo-field", "song-chord-capo-field", "song-scale-capo-field"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = !showCapo;
+    });
   }
 
   function refreshAfterPadMapChange() {
-    reresolveSongsForLayout();
+    try {
+      reresolveSongsForLayout();
+    } catch (err) {
+      console.warn("Failed to reresolve songs after map/tuning change", err);
+    }
     updateInstrumentChrome();
     renderLibrary();
     renderProgressions();
@@ -1809,6 +1940,7 @@
   function setStringMidi(stringIndex, midi) {
     const id = state.instrument;
     if (!S.isStringInstrument(id)) return;
+    if (!state.tunings[id]) state.tunings[id] = S.defaultTuning(id);
     state.tunings[id][stringIndex] = Math.max(0, Math.min(127, midi));
     persistTunings();
     refreshAfterPadMapChange();
@@ -1827,6 +1959,23 @@
     renderPadsEditor();
   }
 
+  function applyTuningPreset(presetId) {
+    if (!isStringMode()) return;
+    const id = state.instrument;
+    state.tunings[id] = S.applyPreset(id, presetId);
+    persistTunings();
+    refreshAfterPadMapChange();
+    renderPadsEditor();
+  }
+
+  function nudgeString(stringIndex, semitones) {
+    const id = state.instrument;
+    if (!S.isStringInstrument(id)) return;
+    if (!state.tunings[id]) state.tunings[id] = S.defaultTuning(id);
+    const cur = state.tunings[id][stringIndex];
+    setStringMidi(stringIndex, cur + semitones);
+  }
+
   function resetTuning() {
     if (!isStringMode()) return;
     state.tunings[state.instrument] = S.defaultTuning(state.instrument);
@@ -1843,15 +1992,46 @@
     if (isStringMode()) {
       const inst = currentStringInstrument();
       const tuning = getTuning();
-      const grid = el("div", { class: "pads-editor-grid tuning-editor" });
+      const summary = S.tuningSummary(tuning);
+      const activePreset = S.matchPresetId(state.instrument, tuning);
+      const presets = S.listPresets(state.instrument);
+
+      const wrap = el("div", { class: "tuning-studio" });
+      wrap.appendChild(
+        el("div", { class: "tuning-summary" }, [
+          el("span", { class: "tuning-summary-label" }, "Open tuning"),
+          el("span", { class: "tuning-summary-notes" }, summary || "—"),
+        ])
+      );
+
+      if (presets.length) {
+        const chips = el("div", { class: "tuning-presets", role: "group", "aria-label": "Tuning presets" });
+        presets.forEach((p) => {
+          chips.appendChild(
+            el(
+              "button",
+              {
+                type: "button",
+                class: `chip${activePreset === p.id ? " active" : ""}`,
+                title: p.detail || p.label,
+                onClick: () => applyTuningPreset(p.id),
+              },
+              `${p.label}${p.detail ? ` · ${p.detail}` : ""}`
+            )
+          );
+        });
+        wrap.appendChild(chips);
+      }
+
+      const strip = el("div", { class: "tuning-strip" });
       tuning.forEach((midi, stringIndex) => {
         const parts = midiParts(midi);
         const noteSel = el("select", {
           class: "pad-note-select",
           "aria-label": `String ${stringIndex + 1} note`,
           onChange: (e) => {
-            const wrap = e.target.closest("[data-string-edit]");
-            const oct = Number(wrap.querySelector(".pad-octave-select").value);
+            const wrapEl = e.target.closest("[data-string-edit]");
+            const oct = Number(wrapEl.querySelector(".pad-octave-select").value);
             setStringMidi(stringIndex, labelToMidi(e.target.value, oct));
           },
         });
@@ -1864,8 +2044,8 @@
           class: "pad-octave-select",
           "aria-label": `String ${stringIndex + 1} octave`,
           onChange: (e) => {
-            const wrap = e.target.closest("[data-string-edit]");
-            const note = wrap.querySelector(".pad-note-select").value;
+            const wrapEl = e.target.closest("[data-string-edit]");
+            const note = wrapEl.querySelector(".pad-note-select").value;
             setStringMidi(stringIndex, labelToMidi(note, e.target.value));
           },
         });
@@ -1874,13 +2054,27 @@
           if (o === parts.octave) opt.selected = true;
           octSel.appendChild(opt);
         });
-        grid.appendChild(
-          el("div", { class: "pad-edit-cell", "data-string-edit": String(stringIndex) }, [
-            el("div", { class: "pad-edit-label" }, [
-              el("span", {}, `${inst.stringNames[stringIndex] || `S${stringIndex + 1}`} string`),
+
+        strip.appendChild(
+          el("div", { class: "tuning-string-card", "data-string-edit": String(stringIndex) }, [
+            el("div", { class: "tuning-string-index" }, `String ${stringIndex + 1}`),
+            el("div", { class: "tuning-string-open" }, parts.note),
+            el("div", { class: "tuning-string-full" }, midiToLabel(midi)),
+            el("div", { class: "tuning-nudge" }, [
+              el("button", {
+                type: "button",
+                class: "btn",
+                title: "Tune down a semitone",
+                onClick: () => nudgeString(stringIndex, -1),
+              }, "−"),
+              el("button", {
+                type: "button",
+                class: "btn",
+                title: "Tune up a semitone",
+                onClick: () => nudgeString(stringIndex, 1),
+              }, "+"),
             ]),
             el("div", { class: "pad-edit-controls" }, [noteSel, octSel]),
-            el("div", { class: "pad-edit-midi" }, midiToLabel(midi)),
             el(
               "button",
               {
@@ -1893,7 +2087,15 @@
           ])
         );
       });
-      host.appendChild(grid);
+      wrap.appendChild(strip);
+      wrap.appendChild(
+        el(
+          "p",
+          { class: "hint" },
+          "Low → high, left to right. Use presets, nudge ±1 semitone, or set note and octave for any custom tuning. Charts update immediately."
+        )
+      );
+      host.appendChild(wrap);
       return;
     }
 
@@ -2072,12 +2274,12 @@
       p.classList.toggle("active", on);
       p.hidden = !on;
     });
+    if (name === "library") renderLibrary();
     if (name === "song") renderSong();
     if (name === "progressions") renderProgressions();
     if (name === "pads") renderPadsEditor();
     if (name === "play") {
-      renderPlayerHighlight();
-      renderPlayerRef();
+      renderPlayer();
     }
   }
 
@@ -2240,6 +2442,9 @@
 
   // --- Init ---
   function init() {
+    if (LAYOUTS[state.instrument]) state.lastPadInstrument = state.instrument;
+    if (S.isStringInstrument(state.instrument)) state.lastStringInstrument = state.instrument;
+
     updateInstrumentChrome();
     reresolveSongsForLayout();
 
@@ -2255,12 +2460,11 @@
 
     syncTempoInputs(activeSong()?.tempo || DEFAULT_TEMPO);
 
-    document.querySelectorAll(".layout-btn").forEach((btn) => {
-      btn.addEventListener("click", () => setInstrument(btn.dataset.instrument));
+    document.querySelectorAll(".family-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setInstrumentFamily(btn.dataset.family));
     });
-    document.getElementById("instrument-select").addEventListener("change", (e) => {
-      if (e.target.value) setInstrument(e.target.value);
-      else if (isStringMode()) setInstrument("4x4");
+    document.querySelectorAll(".option-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setInstrument(btn.dataset.instrument));
     });
 
     document.querySelectorAll(".tab").forEach((tab) => {
