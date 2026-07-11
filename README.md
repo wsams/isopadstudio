@@ -42,9 +42,9 @@ For architecture, data shapes, UI contracts, and agent instructions, see **[SPEC
 
 ![C Hungarian Minor on a 4×4 pad grid in the Library](screenshots/readme-pads-4x4.png)
 
-![C Hungarian Minor on 6-string guitar in the Library](screenshots/readme-guitar.png)
+![C Hungarian Minor on 6-string guitar (standard EADGBE) in the Library](screenshots/readme-guitar.png)
 
-Same scale on **Pads · 4×4**, then **Strings · Guitar** — pick a formula, see the chart, click to hear it. More walkthroughs: **[User manual](MANUAL.md)**.
+Same scale on **Pads · 4×4**, then **Strings · Guitar** (standard tuning) — pick a formula, see the chart, click to hear it. More walkthroughs: **[User manual](MANUAL.md)**.
 
 ## Features
 
