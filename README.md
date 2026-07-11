@@ -30,7 +30,7 @@ Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isop
 | **2×4 (8 pads)** | Akai LPD8, single nanoPAD bank |
 | **2×6 (12 pads)** | Wide 2-row pad controllers |
 | **2×8 (dual 2×4)** | Korg nanoPAD2 — two 2×4 banks side by side (same 16 notes as 4×4) |
-| **Strings** | Guitar, bass (4/5), uke, mandolin, banjo, violin family |
+| **Strings** | Guitar, bass, uke, mando, banjo, violin family, plus Chinese (pipa, erhu, zhongruan, guzheng), Japanese (shamisen, koto), and Middle Eastern (oud, bağlama, setar, tar) |
 
 Pick your instrument in the header. Pads light up on a grid; strings show fretboard / fingerboard charts. Map your own pad notes or open-string tuning. Songs can use a **chord capo** and a separate **scale capo**.
 

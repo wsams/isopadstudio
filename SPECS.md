@@ -102,14 +102,14 @@ Songs re-resolve bars when layout/instrument/tuning/capo/pad map changes (`reres
 
 **Row 1 (static height — do not nest growing option lists here):**
 
-- Brand + `brand-mark` (static **IPS** monogram for IsoPad Studio)
+- Brand + `Logo.svg` mark (**IPS** monogram with 2×2 pad motif)
 - Compact **Pads | Strings** family toggle (`#instrument-switch`)
 - Main tabs: Library · Progressions · Song Builder · Pads/Tuning · Pad Player/Strings
 
 **Row 2 (options tray — content swaps; reserved min-height so the page does not jump):**
 
 - Pads: layout chips **4×4** / **2×4**
-- Strings: instrument chips (Guitar, Bass 4, …)
+- Strings: instrument chips (full names: Guitar, Ukulele, Pipa, …)
 
 Switching family restores `lastPadInstrument` / `lastStringInstrument`.
 
@@ -174,18 +174,32 @@ Grid rendering draws **bottom row first visually** (pad 1 bottom-left) to match 
 
 ### Instruments (`lib/strings.js`)
 
-| Id | Short | Style | Notes |
+| Id | Label | Style | Notes |
 |---|---|---|---|
 | `guitar6` | Guitar | fretted | Presets: Standard, Drop D, DADGAD, Open G |
-| `bass4` | Bass 4 | fretted | |
-| `bass5` | Bass 5 | fretted | |
-| `uke4` | Uke | fretted | Re-entrant GCEA — do not “fix” order like guitar |
-| `mandolin` | Mando | fretted | |
-| `banjo5` | Banjo | fretted | |
+| `bass4` | Bass (4-string) | fretted | |
+| `bass5` | Bass (5-string) | fretted | |
+| `uke4` | Ukulele | fretted | Re-entrant GCEA — do not “fix” order like guitar |
+| `mandolin` | Mandolin | fretted | |
+| `banjo5` | Banjo (5-string) | fretted | |
 | `violin` | Violin | fingerboard | |
 | `viola` | Viola | fingerboard | |
 | `cello` | Cello | fingerboard | |
-| `doublebass` | D. bass | fingerboard | |
+| `doublebass` | Double bass | fingerboard | |
+| `pipa` | Pipa | fretted | Chinese · ADEA |
+| `erhu` | Erhu | fingerboard | Chinese · DA |
+| `zhongruan` | Zhongruan | fretted | Chinese · GDAE |
+| `guzheng` | Guzheng | fingerboard | Chinese · 21-string pentatonic; `voicing: "open"`; D/G/C presets |
+| `shamisen` | Shamisen | fretted | Japanese · hon-chōshi / ni-agari / san-sagari |
+| `koto` | Koto | fingerboard | Japanese · 13-string hira-joshi; `voicing: "open"` |
+| `oud` | Oud | fingerboard | Middle Eastern · Arabic / Turkish presets |
+| `baglama` | Bağlama | fretted | Middle Eastern · bozuk presets |
+| `setar` | Setar | fretted | Middle Eastern |
+| `tar` | Tar | fretted | Middle Eastern · three double courses |
+
+Instrument chips in the header use the full **`label`** (no abbreviations).
+
+Zithers with many strings (`guzheng`, `koto`) use **open-string voicing**: chord charts light open strings that match chord tones (no fretted search).
 
 ### Tuning model
 
@@ -203,6 +217,7 @@ Grid rendering draws **bottom row first visually** (pad 1 bottom-left) to match 
 ### Chord / scale resolution
 
 - Guitar **standard tuning** uses curated open/barre shapes when available; otherwise (and for other tunings/instruments) `searchVoicing`.
+- Instruments with `voicing: "open"` (guzheng, koto) light matching **open strings** only.
 - Chord dots may show **finger numbers** (1–4); open = ○, muted = × (muted rows slightly dimmed).
 - Scales: box of open + ~4 frets; open scale tones as ○ at the nut.
 - Capo: frets relative to capo; sounding pitch = open + capo + fret.

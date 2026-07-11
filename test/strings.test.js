@@ -16,9 +16,28 @@ describe("instruments", () => {
       "viola",
       "cello",
       "doublebass",
+      "pipa",
+      "erhu",
+      "zhongruan",
+      "guzheng",
+      "shamisen",
+      "koto",
+      "oud",
+      "baglama",
+      "setar",
+      "tar",
     ]) {
       assert.ok(ids.includes(id), `missing ${id}`);
     }
+  });
+
+  it("uses full labels without short abbreviations", () => {
+    const labels = S.listInstruments().map((i) => i.label);
+    assert.ok(labels.includes("Ukulele"));
+    assert.ok(labels.includes("Double bass"));
+    assert.ok(labels.includes("Bağlama"));
+    assert.ok(!labels.includes("Uke"));
+    assert.ok(!labels.includes("D. bass"));
   });
 
   it("distinguishes pad layouts from string instruments", () => {
@@ -26,8 +45,18 @@ describe("instruments", () => {
     assert.equal(S.isPadLayout("2x6"), true);
     assert.equal(S.isPadLayout("2x8"), true);
     assert.equal(S.isStringInstrument("guitar6"), true);
+    assert.equal(S.isStringInstrument("guzheng"), true);
     assert.equal(S.isStringInstrument("4x4"), false);
     assert.equal(S.isPadLayout("guitar6"), false);
+  });
+});
+
+describe("open-string zither voicing", () => {
+  it("lights guzheng open strings that match a D major triad", () => {
+    const shape = S.resolveChordShape("guzheng", "D", [0, 4, 7], 0);
+    assert.ok(shape.midis.length >= 3);
+    assert.deepEqual(shape.missing, []);
+    assert.ok(shape.absoluteFrets.every((f) => f === 0 || f == null));
   });
 });
 

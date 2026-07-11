@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 54" width="54" height="54" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">IsoPad Studio</title>
+  <desc>IPS monogram with a 2x2 pad motif on a coral rounded tile.</desc>
+  <defs>
+    <linearGradient id="ips-face" gradientUnits="userSpaceOnUse" x1="4" y1="2" x2="50" y2="52">
+      <stop offset="0" stop-color="#ff5a76"/>
+      <stop offset="0.52" stop-color="#ff7a59"/>
+      <stop offset="1" stop-color="#e83d5c"/>
+    </linearGradient>
+    <linearGradient id="ips-sheen" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="36" y2="40">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="0.42" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Coral rounded tile -->
+  <rect width="54" height="54" rx="15" ry="15" fill="url(#ips-face)"/>
+  <rect width="54" height="54" rx="15" ry="15" fill="url(#ips-sheen)"/>
+  <rect x="0.5" y="0.5" width="53" height="53" rx="14.5" ry="14.5" fill="none" stroke="#ffffff" stroke-opacity="0.2"/>
+
+  <!-- Inner frame -->
+  <rect x="4" y="4" width="46" height="46" rx="11" ry="11" fill="none" stroke="#ffffff" stroke-opacity="0.28"/>
+
+  <!--
+    IPS monogram (path outlines so the mark stays consistent without webfonts).
+    Heavy geometric weight inspired by Syne ExtraBold.
+  -->
+  <!-- soft letter shadow -->
+  <g fill="#000000" opacity="0.18" transform="translate(0 0.7)">
+    <path d="M12.2 16.2h3.1v14.2h-3.1z"/>
+    <path d="M18.6 16.2h5.35c3.05 0 5.05 1.7 5.05 4.35 0 2.7-2.05 4.45-5.15 4.45H21.7v5.4h-3.1V16.2zm3.1 2.55v3.7h2.15c1.35 0 2.15-.7 2.15-1.85s-.8-1.85-2.15-1.85H21.7z"/>
+    <path d="M37.9 16.05c2.55 0 4.35 1.15 5.05 2.95l-2.55 1.05c-.4-.95-1.3-1.55-2.5-1.55-1.35 0-2.2.65-2.2 1.55 0 .95.55 1.4 2.35 1.9l1.55.45c2.85.8 4.35 2.15 4.35 4.45 0 2.85-2.35 4.7-5.85 4.7-2.85 0-4.95-1.3-5.7-3.35l2.6-1.1c.5 1.15 1.6 1.9 3.1 1.9 1.55 0 2.55-.75 2.55-1.8 0-.95-.55-1.45-2.4-1.95l-1.55-.45c-2.85-.85-4.25-2.25-4.25-4.5 0-2.7 2.25-4.55 5.45-4.55z"/>
+  </g>
+  <g fill="#ffffff" transform="translate(0 -1)">
+    <!-- I -->
+    <path d="M12.2 16.2h3.1v14.2h-3.1z"/>
+    <!-- P -->
+    <path d="M18.6 16.2h5.35c3.05 0 5.05 1.7 5.05 4.35 0 2.7-2.05 4.45-5.15 4.45H21.7v5.4h-3.1V16.2zm3.1 2.55v3.7h2.15c1.35 0 2.15-.7 2.15-1.85s-.8-1.85-2.15-1.85H21.7z"/>
+    <!-- S -->
+    <path d="M37.9 16.05c2.55 0 4.35 1.15 5.05 2.95l-2.55 1.05c-.4-.95-1.3-1.55-2.5-1.55-1.35 0-2.2.65-2.2 1.55 0 .95.55 1.4 2.35 1.9l1.55.45c2.85.8 4.35 2.15 4.35 4.45 0 2.85-2.35 4.7-5.85 4.7-2.85 0-4.95-1.3-5.7-3.35l2.6-1.1c.5 1.15 1.6 1.9 3.1 1.9 1.55 0 2.55-.75 2.55-1.8 0-.95-.55-1.45-2.4-1.95l-1.55-.45c-2.85-.85-4.25-2.25-4.25-4.5 0-2.7 2.25-4.55 5.45-4.55z"/>
+  </g>
+
+  <!-- 2x2 MPC pad motif -->
+  <g transform="translate(21 35.2)">
+    <rect width="4" height="4" rx="1" fill="#ffffff" opacity="1"/>
+    <rect x="6" width="4" height="4" rx="1" fill="#ffffff" opacity="0.72"/>
+    <rect y="6" width="4" height="4" rx="1" fill="#ffffff" opacity="0.72"/>
+    <rect x="6" y="6" width="4" height="4" rx="1" fill="#ffffff" opacity="0.45"/>
+  </g>
+</svg>

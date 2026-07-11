@@ -952,7 +952,7 @@
     const tuningLabel = S.tuningSummary(tuning.length === stringCount ? tuning : inst.openMidi);
 
     const board = el("div", {
-      class: `fretboard ${style}${isScale ? " scale" : " chord"}`,
+      class: `fretboard ${style}${isScale ? " scale" : " chord"}${stringCount >= 10 ? " many-strings" : ""}`,
       style: { "--strings": String(stringCount), "--frets": String(fretsShown) },
       title: tuningLabel ? `Open tuning ${tuningLabel} · high string at top` : "",
     });
@@ -1843,6 +1843,7 @@
     if (!row || row.dataset.filled) return;
     row.innerHTML = "";
     S.listInstruments().forEach((inst) => {
+      const region = inst.region ? `${inst.region} · ` : "";
       row.appendChild(
         el(
           "button",
@@ -1850,10 +1851,10 @@
             type: "button",
             class: "string-chip",
             "data-instrument": inst.id,
-            title: `${inst.label} · ${inst.strings} strings`,
+            title: `${inst.label} · ${region}${inst.strings} strings`,
             onClick: () => setInstrument(inst.id),
           },
-          inst.short || inst.label
+          inst.label
         )
       );
     });
