@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.6.0](https://github.com/wsams/isopadstudio/compare/v1.5.0...v1.6.0) (2026-07-11)
+
+
+### Features
+
+* Tuner! ([f1879d0](https://github.com/wsams/isopadstudio/commit/f1879d0346b0ddd10159bdf38df001bb5ac9612f))
+
 # [1.5.0](https://github.com/wsams/isopadstudio/compare/v1.4.0...v1.5.0) (2026-07-11)
 
 
