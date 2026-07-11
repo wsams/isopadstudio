@@ -84,6 +84,203 @@ input {
   gap: 10px;
 }
 
+.tuner-open-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.tuner-open-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--panel-2);
+}
+
+/* —— Chromatic tuner modal —— */
+.tuner-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.tuner-modal[hidden] {
+  display: none !important;
+}
+
+.tuner-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.tuner-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px 20px;
+}
+
+.tuner-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.tuner-dialog-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.tuner-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tuner-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tuner-hint {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.tuner-display {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.tuner-note {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 3.4rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  min-height: 1.1em;
+}
+
+.tuner-cents {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  min-height: 1.4em;
+}
+
+.tuner-display[data-state="in"] .tuner-note,
+.tuner-display[data-state="in"] .tuner-cents {
+  color: var(--ok);
+}
+
+.tuner-display[data-state="flat"] .tuner-cents,
+.tuner-display[data-state="sharp"] .tuner-cents {
+  color: var(--c3);
+}
+
+.tuner-meter {
+  margin: 18px auto 10px;
+  max-width: 320px;
+}
+
+.tuner-meter-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(240, 192, 64, 0.35),
+    rgba(62, 207, 142, 0.45) 45%,
+    rgba(62, 207, 142, 0.45) 55%,
+    rgba(240, 192, 64, 0.35)
+  );
+  border: 1px solid var(--border);
+}
+
+.tuner-meter-mark {
+  position: absolute;
+  top: -4px;
+  left: calc(var(--p) * 1%);
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateX(-50%);
+}
+
+.tuner-meter-mark.mid {
+  width: 2px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.tuner-needle {
+  position: absolute;
+  top: -8px;
+  left: calc(50% + (var(--cents) / 50) * 50%);
+  width: 4px;
+  height: 26px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: left 80ms linear, background 120ms ease;
+}
+
+.tuner-display[data-state="in"] .tuner-needle {
+  background: var(--ok);
+}
+
+.tuner-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.tuner-hz {
+  margin-top: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.tuner-status {
+  margin: 12px 0 0;
+  min-height: 1.3em;
+  font-size: 0.82rem;
+  color: var(--danger);
+  text-align: center;
+}
+
+.tuner-status:empty {
+  display: none;
+}
+
 /* —— Pads / Strings (static top row) —— */
 .family-toggle {
   position: relative;

@@ -8,7 +8,8 @@ Header layout (same on every tab):
 
 1. **Pads | Strings** — family toggle (stays put)
 2. Main tabs — Library, Progressions, Song Builder, then Pads/Tuning and Pad Player/Strings
-3. **Options tray** — layout chips (4×4 / 2×4 / 2×6 / 2×8) or instrument chips (Guitar, Uke, …)
+3. **Tuner** — chromatic microphone tuner (popup)
+4. **Options tray** — layout chips (4×4 / 2×4 / 2×6 / 2×8) or instrument chips (Guitar, Ukulele, …)
 
 ---
 
@@ -20,10 +21,11 @@ Header layout (same on every tab):
 4. [Library — scales on pads](#library--scales-on-pads)
 5. [Library — scales on strings](#library--scales-on-strings)
 6. [Tuning](#tuning)
-7. [Strings player](#strings-player)
-8. [Progressions](#progressions)
-9. [Song Builder](#song-builder)
-10. [Screenshot index](#screenshot-index)
+7. [Tuner](#tuner)
+8. [Strings player](#strings-player)
+9. [Progressions](#progressions)
+10. [Song Builder](#song-builder)
+11. [Screenshot index](#screenshot-index)
 
 ---
 
@@ -123,6 +125,17 @@ After Drop D, Library charts follow the new open notes:
 ![A minor pentatonic in Drop D](screenshots/11-library-guitar-drop-d-scale.png)
 
 Badge reads **DADGBE**; low string label is **D** instead of E.
+
+---
+
+## Tuner
+
+Click **Tuner** in the header (any tab). Allow microphone access when prompted.
+
+- Chromatic display: note + octave, cents needle (−50 … +50), and Hz
+- Green when within about ±5 cents of the nearest pitch (A4 = 440 Hz)
+- Pluck **one** string in a quiet room; laptop mics are weaker on very low bass
+- Close the dialog (or press Esc) to stop the mic — audio never leaves the browser
 
 ---
 

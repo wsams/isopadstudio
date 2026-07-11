@@ -39,6 +39,9 @@
             <button class="tab" data-tab="pads" role="tab" aria-selected="false" id="tab-pads">Pads</button>
             <button class="tab" data-tab="play" role="tab" aria-selected="false" id="tab-play">Pad Player</button>
           </nav>
+          <button type="button" class="tuner-open-btn" id="btn-tuner" title="Chromatic tuner (microphone)">
+            Tuner
+          </button>
         </div>
       </div>
 
@@ -266,8 +269,47 @@
     </footer>
   </div>
 
+  <div class="tuner-modal" id="tuner-modal" hidden>
+    <div class="tuner-backdrop" data-tuner-close></div>
+    <div
+      class="tuner-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tuner-title"
+      tabindex="-1"
+    >
+      <header class="tuner-dialog-head">
+        <h2 id="tuner-title">Tuner</h2>
+        <button type="button" class="tuner-close" id="tuner-close" aria-label="Close tuner" data-tuner-close>
+          ×
+        </button>
+      </header>
+      <p class="tuner-hint" id="tuner-hint">Allow microphone · pluck one string · quiet room · A4 = 440 Hz</p>
+      <div class="tuner-display" id="tuner-display" data-state="idle">
+        <div class="tuner-note" id="tuner-note">—</div>
+        <div class="tuner-cents" id="tuner-cents">Listening…</div>
+        <div class="tuner-meter" aria-hidden="true">
+          <div class="tuner-meter-track">
+            <span class="tuner-meter-mark" style="--p: 0"></span>
+            <span class="tuner-meter-mark mid" style="--p: 50"></span>
+            <span class="tuner-meter-mark" style="--p: 100"></span>
+            <div class="tuner-needle" id="tuner-needle" style="--cents: 0"></div>
+          </div>
+          <div class="tuner-meter-labels">
+            <span>−50¢</span>
+            <span>0</span>
+            <span>+50¢</span>
+          </div>
+        </div>
+        <div class="tuner-hz" id="tuner-hz">— Hz</div>
+      </div>
+      <p class="tuner-status" id="tuner-status" role="status"></p>
+    </div>
+  </div>
+
   <script src="lib/music.js"></script>
   <script src="lib/strings.js"></script>
+  <script src="lib/tuner.js"></script>
   <script src="progressions.js"></script>
   <script src="app.js"></script>
 </body>

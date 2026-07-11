@@ -189,11 +189,15 @@
   const DEFAULT_TEMPO = 100;
   const M = globalThis.IsoPadMusic;
   const S = globalThis.IsoPadStrings;
+  const T = globalThis.IsoPadTuner;
   if (!M) {
     throw new Error("IsoPadMusic failed to load — include lib/music.js before app.js");
   }
   if (!S) {
     throw new Error("IsoPadStrings failed to load — include lib/strings.js before app.js");
+  }
+  if (!T) {
+    throw new Error("IsoPadTuner failed to load — include lib/tuner.js before app.js");
   }
 
   const {
@@ -361,6 +365,164 @@
     }
     if (audioCtx.state === "suspended") audioCtx.resume();
     return audioCtx;
+  }
+
+  // --- Chromatic tuner (mic + YIN) ---
+  const tunerSession = {
+    open: false,
+    stream: null,
+    source: null,
+    analyser: null,
+    raf: 0,
+    smoother: null,
+    lastFocus: null,
+  };
+
+  function setTunerUi({ note, cents, hz, state, status }) {
+    const noteEl = document.getElementById("tuner-note");
+    const centsEl = document.getElementById("tuner-cents");
+    const hzEl = document.getElementById("tuner-hz");
+    const needle = document.getElementById("tuner-needle");
+    const display = document.getElementById("tuner-display");
+    const statusEl = document.getElementById("tuner-status");
+    if (noteEl) noteEl.textContent = note ?? "—";
+    if (centsEl) {
+      if (cents == null) centsEl.textContent = state === "idle" ? "Listening…" : "—";
+      else {
+        const sign = cents > 0 ? "+" : "";
+        centsEl.textContent = `${sign}${cents}¢`;
+      }
+    }
+    if (hzEl) hzEl.textContent = hz != null ? `${hz.toFixed(1)} Hz` : "— Hz";
+    if (needle) {
+      const clamped = Math.max(-50, Math.min(50, cents ?? 0));
+      needle.style.setProperty("--cents", String(clamped));
+    }
+    if (display) display.dataset.state = state || "idle";
+    if (statusEl) statusEl.textContent = status || "";
+  }
+
+  function stopTuner() {
+    if (tunerSession.raf) {
+      cancelAnimationFrame(tunerSession.raf);
+      tunerSession.raf = 0;
+    }
+    if (tunerSession.source) {
+      try {
+        tunerSession.source.disconnect();
+      } catch (_) {
+        /* ignore */
+      }
+      tunerSession.source = null;
+    }
+    tunerSession.analyser = null;
+    if (tunerSession.stream) {
+      tunerSession.stream.getTracks().forEach((t) => t.stop());
+      tunerSession.stream = null;
+    }
+    if (tunerSession.smoother) tunerSession.smoother.reset();
+    tunerSession.open = false;
+  }
+
+  function closeTunerModal() {
+    stopTuner();
+    const modal = document.getElementById("tuner-modal");
+    if (modal) modal.hidden = true;
+    setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
+    if (tunerSession.lastFocus && typeof tunerSession.lastFocus.focus === "function") {
+      try {
+        tunerSession.lastFocus.focus();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    tunerSession.lastFocus = null;
+  }
+
+  function tunerTick() {
+    if (!tunerSession.open || !tunerSession.analyser) return;
+    const analyser = tunerSession.analyser;
+    const buf = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buf);
+    const rms = T.bufferRms(buf);
+    if (rms < 0.008) {
+      setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
+      tunerSession.smoother.reset();
+    } else {
+      const ctx = ensureAudio();
+      const rawHz = T.detectPitchYin(buf, ctx.sampleRate);
+      const hz = rawHz != null ? tunerSession.smoother.push(rawHz) : null;
+      const info = hz != null ? T.hzToNote(hz) : null;
+      if (info) {
+        const abs = Math.abs(info.cents);
+        const state = abs <= 5 ? "in" : info.cents < 0 ? "flat" : "sharp";
+        setTunerUi({
+          note: info.label,
+          cents: info.cents,
+          hz: info.hz,
+          state,
+          status: "",
+        });
+      } else {
+        setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
+      }
+    }
+    tunerSession.raf = requestAnimationFrame(tunerTick);
+  }
+
+  async function openTunerModal() {
+    const modal = document.getElementById("tuner-modal");
+    if (!modal) return;
+    if (tunerSession.open) return;
+
+    tunerSession.lastFocus = document.activeElement;
+    modal.hidden = false;
+    setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "Requesting microphone…" });
+    document.getElementById("tuner-close")?.focus();
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setTunerUi({
+        note: "—",
+        cents: null,
+        hz: null,
+        state: "idle",
+        status: "Microphone API not available in this browser.",
+      });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      const ctx = ensureAudio();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
+      source.connect(analyser);
+
+      tunerSession.stream = stream;
+      tunerSession.source = source;
+      tunerSession.analyser = analyser;
+      tunerSession.smoother = T.createPitchSmoother();
+      tunerSession.open = true;
+      setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
+      tunerSession.raf = requestAnimationFrame(tunerTick);
+    } catch (err) {
+      console.warn("Tuner mic error", err);
+      setTunerUi({
+        note: "—",
+        cents: null,
+        hz: null,
+        state: "idle",
+        status: "Microphone permission denied or unavailable.",
+      });
+    }
   }
 
   function playTone(padIndex, when, duration, opts = {}) {
@@ -2688,6 +2850,21 @@
       resetPadMapChromatic(60); // C4 / middle C
     });
     document.getElementById("btn-tuning-reset").addEventListener("click", resetTuning);
+
+    document.getElementById("btn-tuner")?.addEventListener("click", () => {
+      openTunerModal();
+    });
+    document.querySelectorAll("[data-tuner-close]").forEach((node) => {
+      node.addEventListener("click", () => closeTunerModal());
+    });
+    window.addEventListener("keydown", (e) => {
+      const modal = document.getElementById("tuner-modal");
+      if (e.key === "Escape" && modal && !modal.hidden) {
+        e.preventDefault();
+        closeTunerModal();
+      }
+    });
+    window.addEventListener("pagehide", () => stopTuner());
 
     document.getElementById("prog-key").addEventListener("change", (e) => {
       state.progKey = e.target.value;

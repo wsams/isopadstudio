@@ -14,6 +14,8 @@ describe("repository smoke", () => {
       "app.css",
       "progressions.js",
       "lib/music.js",
+      "lib/strings.js",
+      "lib/tuner.js",
       "package.json",
       ".releaserc.json",
       ".github/workflows/release.yml",
@@ -22,18 +24,24 @@ describe("repository smoke", () => {
     }
   });
 
-  it("loads lib/music.js before app.js in index.html", () => {
+  it("loads lib modules before app.js in index.html", () => {
     const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
     const musicIdx = html.indexOf("lib/music.js");
     const stringsIdx = html.indexOf("lib/strings.js");
+    const tunerIdx = html.indexOf("lib/tuner.js");
     const appIdx = html.indexOf("app.js");
     assert.ok(musicIdx >= 0, "lib/music.js script missing");
     assert.ok(stringsIdx > musicIdx, "lib/strings.js must load after music.js");
-    assert.ok(appIdx > stringsIdx, "app.js must load after lib/strings.js");
+    assert.ok(tunerIdx > stringsIdx, "lib/tuner.js must load after strings.js");
+    assert.ok(appIdx > tunerIdx, "app.js must load after lib/tuner.js");
   });
 
   it("ships string instrument library", () => {
     assert.ok(fs.existsSync(path.join(root, "lib/strings.js")));
+  });
+
+  it("ships chromatic tuner library", () => {
+    assert.ok(fs.existsSync(path.join(root, "lib/tuner.js")));
   });
 
   it("package.json starts at a development version placeholder", () => {

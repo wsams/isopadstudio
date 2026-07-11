@@ -40,7 +40,8 @@ isopadstudio/
 ├── app.js              # App state, UI, playback, persistence (IIFE)
 ├── lib/
 │   ├── music.js        # Pad maps, MIDI helpers, getActivePads (browser + Node)
-│   └── strings.js      # String instruments, tunings, capo, chord/scale diagrams
+│   ├── strings.js      # String instruments, tunings, capo, chord/scale diagrams
+│   └── tuner.js        # YIN pitch detection + Hz→note/cents (browser + Node)
 ├── progressions.js     # Stock progressions (window.ISOPAD_PROGRESSIONS)
 ├── screenshots/        # MANUAL.md gallery (+ one hero in README)
 ├── test/               # node:test suites
@@ -54,9 +55,9 @@ isopadstudio/
 └── .github/workflows/pages.yml   # Deploy whole repo root to GitHub Pages
 ```
 
-**Script load order** (required): `lib/music.js` → `lib/strings.js` → `progressions.js` → `app.js`.
+**Script load order** (required): `lib/music.js` → `lib/strings.js` → `lib/tuner.js` → `progressions.js` → `app.js`.
 
-Globals: `IsoPadMusic`, `IsoPadStrings`, `ISOPAD_PROGRESSIONS` (with legacy aliases for older progression globals).
+Globals: `IsoPadMusic`, `IsoPadStrings`, `IsoPadTuner`, `ISOPAD_PROGRESSIONS` (with legacy aliases for older progression globals).
 
 ---
 
@@ -105,10 +106,11 @@ Songs re-resolve bars when layout/instrument/tuning/capo/pad map changes (`reres
 - Brand + `Logo.svg` mark (**IPS** monogram with 2×2 pad motif)
 - Compact **Pads | Strings** family toggle (`#instrument-switch`)
 - Main tabs: Library · Progressions · Song Builder · Pads/Tuning · Pad Player/Strings
+- **Tuner** button (`#btn-tuner`) — opens chromatic mic tuner modal (`#tuner-modal`)
 
 **Row 2 (options tray — content swaps; reserved min-height so the page does not jump):**
 
-- Pads: layout chips **4×4** / **2×4**
+- Pads: layout chips **4×4** / **2×4** / **2×6** / **2×8**
 - Strings: instrument chips (full names: Guitar, Ukulele, Pipa, …)
 
 Switching family restores `lastPadInstrument` / `lastStringInstrument`.
@@ -296,6 +298,15 @@ Legacy read fallbacks exist for older ChromaPad / mpc16chords keys (songs, activ
 - Scale playback: **one note per beat**.
 - Progression/song chord bars: roughly **two beats per bar** at current tempo; loops until stop.
 - `library-tempo` and `song-tempo` stay synced via `syncTempoInputs` / `setTempo`.
+
+### Chromatic tuner (`lib/tuner.js`)
+
+- Header **Tuner** opens a modal; requests `getUserMedia` (mic). Audio stays local — never uploaded.
+- Pitch: **YIN** on `AnalyserNode` time-domain buffers; use the live `AudioContext.sampleRate`.
+- Display: nearest note (A4 = **440 Hz**), cents (−50…+50 needle), Hz; green when within ~±5¢.
+- Smooth Hz with `createPitchSmoother`; ignore low RMS / low-confidence frames.
+- **Must** stop mic tracks on close / Esc / `pagehide` — do not leave the stream running.
+- Pure helpers are unit-tested; mic path is browser-only (not in CI).
 
 ---
 

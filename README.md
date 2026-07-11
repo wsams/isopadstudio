@@ -18,6 +18,8 @@ The idea is simple. Many of these instruments are *isomorphic* — once you lear
 
 **Nothing to install.** Works in Chrome, Firefox, Safari, or Edge.
 
+Need to tune before you play? Hit **Tuner** in the header — a chromatic mic tuner runs entirely in your browser on this free GitHub Pages site. **No ads. No account. No fuss.** Audio never leaves your machine.
+
 [![Open live app](https://img.shields.io/badge/Open_live_app-wsams.github.io-ff4d6d?style=for-the-badge&logo=github&logoColor=white)](https://wsams.github.io/isopadstudio/index.html)
 
 Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isopadstudio)
@@ -48,6 +50,7 @@ Same scale on **Pads · 4×4**, then **Strings · Guitar** (standard tuning) —
 
 ## Features
 
+- **Tuner** — free chromatic mic tuner in the header (A4 = 440 Hz); no ads, mic stays in the browser
 - **Pads editor** — assign note + octave to every pad (defaults: chromatic from **C3**; piano middle C is **C4**)
 - **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning
 - **Capo** — song-level chord capo; separate scale capo for leads / overlay
