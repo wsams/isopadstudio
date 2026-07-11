@@ -233,3 +233,9 @@ Overlay and chord cards use **DADGBE** diagrams when that tuning is active — S
 | `22-tuner.png` | Tuner popup · A♯3 (also README) |
 
 When adding new shots, prefer `NN-kebab-name.png` and extend this table plus a short section above.
+
+---
+
+## Support the project
+
+IsoPad Studio Pro is a solo effort — no sponsors, no ads. If the tools help you and you’d like to say thanks, you can [buy a coffee on PayPal](https://paypal.me/weldonsams) (`@weldonsams`) or [Venmo @wsams](https://venmo.com/u/wsams). Completely optional.

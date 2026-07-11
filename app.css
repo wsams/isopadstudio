@@ -1677,8 +1677,17 @@ input[type="text"]:focus {
 }
 
 .footer-status,
+.footer-support,
 .footer-links {
   margin: 0;
+}
+
+.footer-support {
+  margin-top: 10px;
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.45;
 }
 
 .footer-links {

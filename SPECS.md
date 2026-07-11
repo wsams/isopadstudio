@@ -109,6 +109,8 @@ Songs re-resolve bars when layout/instrument/tuning/capo/pad map changes (`reres
 - Main tabs: Library · Progressions · Song Builder · Pads/Tuning · Pad Player/Strings
 - **Tuner** button (`#btn-tuner`) — opens chromatic mic tuner modal (`#tuner-modal`)
 
+Footer may include optional support links (PayPal `https://paypal.me/weldonsams`, Venmo `https://venmo.com/u/wsams`) — keep the tone friendly and non-pushy.
+
 **Row 2 (options tray — content swaps; reserved min-height so the page does not jump):**
 
 - Pads: layout chips **4×4** / **2×4** / **2×6** / **2×8**

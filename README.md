@@ -199,3 +199,14 @@ Pushes to `main` run [semantic-release](https://github.com/semantic-release/sema
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Support the project
+
+IsoPad Studio Pro is built and maintained by **one person**, with no sponsors and no ads — just a free professional tool on GitHub Pages.
+
+If it helps your practice or gigs and you feel like saying thanks, you can buy me a coffee (or whatever keeps the late-night coding going):
+
+- [PayPal](https://paypal.me/weldonsams) — `@weldonsams`
+- [Venmo](https://venmo.com/u/wsams) — `@wsams`
+
+Totally optional. Use the app either way — I’m glad you’re here.
