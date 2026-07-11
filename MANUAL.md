@@ -82,31 +82,25 @@ On a small map, some scale degrees may be missing (here A and B). Lit pads are i
 
 ### 4×4
 
-![G Mixolydian on 4×4 pads](screenshots/06-library-pads-4x4-scale.png)
+![A Blues on 4×4 pads](screenshots/20-library-pads-4x4-blues.png)
 
-Fuller board: every in-scale pad lights. Click to hear the scale **ascending**, one note per beat at the Library tempo. Tip: **Pad Player** keeps the scale highlighted for individual practice.
+**Kind → Scales & Modes** · category **Pentatonic & blues** · **Blues Scale** · root **A**. Every in-scale pad lights. Click to hear the scale **ascending**, one note per beat at the Library tempo. Tip: **Pad Player** keeps the scale highlighted for individual practice.
 
 ---
 
 ## Library — scales on strings
 
-### Guitar Mixolydian
+### Guitar blues / pentatonic
 
-![G Mixolydian on guitar](screenshots/07-library-guitar-scale.png)
+![A Blues on guitar](screenshots/21-library-guitar-blues.png)
 
-Scale box on the fretboard: open tones as ○, fretted tones as dots, **R** = root. Capo and tempo both available for scales in string mode.
+Category **Pentatonic & blues** · **Blues Scale** · root **A** · standard **EADGBE**. Scale tones as dots, **R** = root. Same Library controls as Mixolydian; color tints the chart.
 
 ### Violin Mixolydian
 
 ![G Mixolydian on violin](screenshots/08-library-violin-scale.png)
 
 **Violin** uses a fingerboard-style chart (GDAE, high string at top). Same Library controls.
-
-### Guitar minor pentatonic
-
-![A minor pentatonic on guitar](screenshots/09-library-guitar-pentatonic.png)
-
-Category **Pentatonic & blues** · **Minor Pentatonic** · color green. Category chips filter the formula list; color tints the chart dots.
 
 ---
 
@@ -130,12 +124,15 @@ Badge reads **DADGBE**; low string label is **D** instead of E.
 
 ## Tuner
 
+![Chromatic tuner popup](screenshots/22-tuner.png)
+
 Click **Tuner** in the header (any tab). Allow microphone access when prompted.
 
 - Chromatic display: note + octave, cents needle (−50 … +50), and Hz
 - Green when within about ±5 cents of the nearest pitch (A4 = 440 Hz)
 - Pluck **one** string in a quiet room; laptop mics are weaker on very low bass
 - Close the dialog (or press Esc) to stop the mic — audio never leaves the browser
+- Free on the GitHub Pages site: no ads, no account
 
 ---
 
@@ -231,5 +228,8 @@ Overlay and chord cards use **DADGBE** diagrams when that tuning is active — S
 | `17-song-builder-sections.png` | Song Builder · multi-section |
 | `18-song-builder-pads-2x4.png` | Song Builder · Pads 2×4 |
 | `19-song-builder-guitar-drop-d.png` | Song Builder · Guitar Drop D |
+| `20-library-pads-4x4-blues.png` | Library · Pads 4×4 · A Blues (also README) |
+| `21-library-guitar-blues.png` | Library · Guitar · A Blues (also README) |
+| `22-tuner.png` | Tuner popup · A♯3 (also README) |
 
 When adding new shots, prefer `NN-kebab-name.png` and extend this table plus a short section above.
