@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.5.0](https://github.com/wsams/isopadstudio/compare/v1.4.0...v1.5.0) (2026-07-11)
+
+
+### Features
+
+* UI and Logo ([43d8351](https://github.com/wsams/isopadstudio/commit/43d835118749dde6e7aa4f0c8943cd138cd33e21))
+
 # [1.4.0](https://github.com/wsams/isopadstudio/compare/v1.3.0...v1.4.0) (2026-07-11)
 
 
