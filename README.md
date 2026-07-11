@@ -38,11 +38,13 @@ For walkthroughs and more screenshots, see the **[User manual](MANUAL.md)**.
 
 For architecture, data shapes, UI contracts, and agent instructions, see **[SPECS.md](SPECS.md)** (keep it updated when behavior changes).
 
-## Screenshot
+## Screenshots
 
-![G major on a 4×4 pad grid in the Library](screenshots/01-library-pads-4x4-chord.png)
+![C Hungarian Minor on a 4×4 pad grid in the Library](screenshots/readme-pads-4x4.png)
 
-Library on **Pads · 4×4**: pick a chord (here **Gmaj**), see which pads light up, click to hear it — then open **Pad Player** to tap each note. More walkthroughs: **[User manual](MANUAL.md)**.
+![C Hungarian Minor on 6-string guitar in the Library](screenshots/readme-guitar.png)
+
+Same scale on **Pads · 4×4**, then **Strings · Guitar** — pick a formula, see the chart, click to hear it. More walkthroughs: **[User manual](MANUAL.md)**.
 
 ## Features
 
@@ -140,7 +142,7 @@ isopadstudio/
 ├── lib/music.js      # Shared pad/chord math (tested)
 ├── lib/strings.js    # String instruments, capo, fingerings
 ├── progressions.js
-├── screenshots/      # Used by MANUAL.md (and one hero shot in README)
+├── screenshots/      # Used by MANUAL.md and README hero shots
 ├── test/             # node:test suite (`npm test`)
 ├── README.md
 ├── MANUAL.md         # User guide + screenshot gallery
