@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 54" width="54" height="54" role="img" aria-labelledby="logo-title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72" role="img" aria-labelledby="logo-title">
   <title id="logo-title">IsoPad Studio Pro</title>
-  <desc>IPS monogram with a 2x2 pad motif on a coral rounded tile.</desc>
+  <desc>IPS monogram with centered pads; yellow PRO badge hangs off the bottom-right corner.</desc>
   <defs>
     <linearGradient id="ips-face" gradientUnits="userSpaceOnUse" x1="4" y1="2" x2="50" y2="52">
       <stop offset="0" stop-color="#ff5a76"/>
@@ -8,43 +8,57 @@
       <stop offset="1" stop-color="#e83d5c"/>
     </linearGradient>
     <linearGradient id="ips-sheen" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="36" y2="40">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
-      <stop offset="0.42" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
+    <linearGradient id="ips-pro" gradientUnits="userSpaceOnUse" x1="31" y1="41" x2="67" y2="58">
+      <stop offset="0" stop-color="#f5d06a"/>
+      <stop offset="1" stop-color="#e8a83a"/>
+    </linearGradient>
+    <filter id="ips-pro-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
   </defs>
 
-  <!-- Coral rounded tile -->
+  <!-- Main app tile -->
   <rect width="54" height="54" rx="15" ry="15" fill="url(#ips-face)"/>
   <rect width="54" height="54" rx="15" ry="15" fill="url(#ips-sheen)"/>
-  <rect x="0.5" y="0.5" width="53" height="53" rx="14.5" ry="14.5" fill="none" stroke="#ffffff" stroke-opacity="0.2"/>
-
-  <!-- Inner frame -->
+  <rect x="0.5" y="0.5" width="53" height="53" rx="14.5" ry="14.5" fill="none" stroke="#ffffff" stroke-opacity="0.22"/>
   <rect x="4" y="4" width="46" height="46" rx="11" ry="11" fill="none" stroke="#ffffff" stroke-opacity="0.28"/>
 
-  <!--
-    IPS monogram (path outlines so the mark stays consistent without webfonts).
-    Heavy geometric weight inspired by Syne ExtraBold.
-  -->
-  <!-- soft letter shadow -->
-  <g fill="#000000" opacity="0.18" transform="translate(0 0.7)">
-    <path d="M12.2 16.2h3.1v14.2h-3.1z"/>
-    <path d="M18.6 16.2h5.35c3.05 0 5.05 1.7 5.05 4.35 0 2.7-2.05 4.45-5.15 4.45H21.7v5.4h-3.1V16.2zm3.1 2.55v3.7h2.15c1.35 0 2.15-.7 2.15-1.85s-.8-1.85-2.15-1.85H21.7z"/>
-    <path d="M37.9 16.05c2.55 0 4.35 1.15 5.05 2.95l-2.55 1.05c-.4-.95-1.3-1.55-2.5-1.55-1.35 0-2.2.65-2.2 1.55 0 .95.55 1.4 2.35 1.9l1.55.45c2.85.8 4.35 2.15 4.35 4.45 0 2.85-2.35 4.7-5.85 4.7-2.85 0-4.95-1.3-5.7-3.35l2.6-1.1c.5 1.15 1.6 1.9 3.1 1.9 1.55 0 2.55-.75 2.55-1.8 0-.95-.55-1.45-2.4-1.95l-1.55-.45c-2.85-.85-4.25-2.25-4.25-4.5 0-2.7 2.25-4.55 5.45-4.55z"/>
-  </g>
-  <g fill="#ffffff" transform="translate(0 -1)">
-    <!-- I -->
-    <path d="M12.2 16.2h3.1v14.2h-3.1z"/>
-    <!-- P -->
-    <path d="M18.6 16.2h5.35c3.05 0 5.05 1.7 5.05 4.35 0 2.7-2.05 4.45-5.15 4.45H21.7v5.4h-3.1V16.2zm3.1 2.55v3.7h2.15c1.35 0 2.15-.7 2.15-1.85s-.8-1.85-2.15-1.85H21.7z"/>
-    <!-- S -->
-    <path d="M37.9 16.05c2.55 0 4.35 1.15 5.05 2.95l-2.55 1.05c-.4-.95-1.3-1.55-2.5-1.55-1.35 0-2.2.65-2.2 1.55 0 .95.55 1.4 2.35 1.9l1.55.45c2.85.8 4.35 2.15 4.35 4.45 0 2.85-2.35 4.7-5.85 4.7-2.85 0-4.95-1.3-5.7-3.35l2.6-1.1c.5 1.15 1.6 1.9 3.1 1.9 1.55 0 2.55-.75 2.55-1.8 0-.95-.55-1.45-2.4-1.95l-1.55-.45c-2.85-.85-4.25-2.25-4.25-4.5 0-2.7 2.25-4.55 5.45-4.55z"/>
+  <!-- IPS + pads centered as one stack -->
+  <text
+    x="27"
+    y="26"
+    text-anchor="middle"
+    font-family="Arial Black, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="15.5"
+    font-weight="900"
+    letter-spacing="-0.02em"
+  >
+    <tspan fill="#ffffff">IP</tspan><tspan fill="#ffd090" dx="-0.15">S</tspan>
+  </text>
+
+  <g transform="translate(20.8 35.2)">
+    <rect width="3.6" height="3.6" rx="0.9" fill="#ffffff"/>
+    <rect x="5.2" width="3.6" height="3.6" rx="0.9" fill="#ffffff" opacity="0.75"/>
+    <rect y="5.2" width="3.6" height="3.6" rx="0.9" fill="#ffffff" opacity="0.75"/>
+    <rect x="5.2" y="5.2" width="3.6" height="3.6" rx="0.9" fill="#ffffff" opacity="0.48"/>
   </g>
 
-  <!-- 2x2 MPC pad motif -->
-  <g transform="translate(21 35.2)">
-    <rect width="4" height="4" rx="1" fill="#ffffff" opacity="1"/>
-    <rect x="6" width="4" height="4" rx="1" fill="#ffffff" opacity="0.72"/>
-    <rect y="6" width="4" height="4" rx="1" fill="#ffffff" opacity="0.72"/>
-    <rect x="6" y="6" width="4" height="4" rx="1" fill="#ffffff" opacity="0.45"/>
+  <!-- PRO hangs off bottom-right corner like an app badge -->
+  <g transform="translate(32.5 42.5)" filter="url(#ips-pro-shadow)">
+    <rect width="32.4" height="14.85" rx="7.4" fill="url(#ips-pro)"/>
+    <rect x="0.65" y="0.65" width="31.1" height="13.55" rx="6.8" fill="none" stroke="#ffffff" stroke-opacity="0.55"/>
+    <text
+      x="16.2"
+      y="10.1"
+      text-anchor="middle"
+      fill="#1a1410"
+      font-family="Arial Black, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-size="8.3"
+      font-weight="900"
+      letter-spacing="0.14em"
+    >PRO</text>
   </g>
 </svg>

@@ -829,12 +829,12 @@ input {
 }
 
 .brand-mark {
-  width: 54px;
-  height: 54px;
-  border-radius: 15px;
+  width: 72px;
+  height: 72px;
+  border-radius: 0;
   display: block;
   flex-shrink: 0;
-  box-shadow: 0 8px 24px rgba(255, 77, 109, 0.35);
+  filter: drop-shadow(0 8px 18px rgba(255, 77, 109, 0.32));
 }
 
 .brand h1 {
