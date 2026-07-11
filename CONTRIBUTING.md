@@ -1,6 +1,6 @@
-# Contributing to IsoPad Studio
+# Contributing to IsoPad Studio Pro
 
-Thanks for helping improve this project. It is a small, dependency-free static web app — keep changes focused and easy to run with `python3 -m http.server`.
+Thanks for helping improve this professional, free studio tool. It is a small, dependency-free static web app — keep changes focused and easy to run with `python3 -m http.server`.
 
 **Agents and contributors:** read **[SPECS.md](SPECS.md)** before changing product behavior, and update that file in the same PR whenever specs change.
 

@@ -1,6 +1,6 @@
-# IsoPad Studio
+# IsoPad Studio Pro
 
-**Look up chords, scales, modes, and progressions** for pad controllers and string instruments — then see exactly which pads or frets to play. There’s also a free **chromatic tuner** in the header so you can tune before you practice, right in the browser.
+**Professional** chord, scale, mode, and progression charts for pad controllers and string instruments — see exactly which pads or frets to play, then tune with a free chromatic mic tuner. Powerful studio tools, free on GitHub Pages: **no ads, no account, no fuss.**
 
 Built for people with gear like:
 
@@ -10,17 +10,17 @@ Built for people with gear like:
 
 …and also for **string players**: guitar, bass, ukulele, mandolin, banjo, violin, viola, cello, and double bass.
 
-The idea is simple. Many of these instruments are *isomorphic* — once you learn a shape, you can move it to play in another key. IsoPad Studio shows those shapes as charts you can hear, save into songs, and print. New to that idea? Browse a chord or scale and click to hear it. Already deep into theory? There’s a large library of qualities, modes, and stock progressions by genre.
+The idea is simple. Many of these instruments are *isomorphic* — once you learn a shape, you can move it to play in another key. IsoPad Studio Pro shows those shapes as charts you can hear, save into songs, and print. New to that idea? Browse a chord or scale and click to hear it. Already deep into theory? There’s a large library of qualities, modes, and stock progressions by genre.
 
 ---
 
-### [▶ Open IsoPad Studio — live in your browser](https://wsams.github.io/isopadstudio/index.html)
+### [▶ Open IsoPad Studio Pro — live in your browser](https://wsams.github.io/isopadstudio/index.html)
 
 **Nothing to install.** Works in Chrome, Firefox, Safari, or Edge.
 
 Need to tune before you play? Hit **Tuner** in the header — a chromatic mic tuner runs entirely in your browser on this free GitHub Pages site. **No ads. No account. No fuss.** Audio never leaves your machine.
 
-[![Open live app](https://img.shields.io/badge/Open_live_app-wsams.github.io-ff4d6d?style=for-the-badge&logo=github&logoColor=white)](https://wsams.github.io/isopadstudio/index.html)
+[![Open live app](https://img.shields.io/badge/Open_IsoPad_Studio_Pro-wsams.github.io-ff4d6d?style=for-the-badge&logo=github&logoColor=white)](https://wsams.github.io/isopadstudio/index.html)
 
 Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isopadstudio)
 
@@ -50,7 +50,7 @@ For architecture, data shapes, UI contracts, and agent instructions, see **[SPEC
 
 Same scale on **Pads · 4×4**, then **Strings · Guitar**, plus the **Tuner** popup (mic stays in your browser). More walkthroughs: **[User manual](MANUAL.md)**.
 
-## Features
+## Professional features
 
 - **Tuner** — free chromatic mic tuner in the header (A4 = 440 Hz); no ads, mic stays in the browser
 - **Pads editor** — assign note + octave to every pad (defaults: chromatic from **C3**; piano middle C is **C4**)

@@ -1,8 +1,8 @@
-# IsoPad Studio manual
+# IsoPad Studio Pro manual
 
-Step-by-step guide with current screenshots. For a short overview, see [README.md](README.md). For architecture and agent contracts, see [SPECS.md](SPECS.md).
+Professional walkthroughs with current screenshots. For a short overview, see [README.md](README.md). For architecture and agent contracts, see [SPECS.md](SPECS.md).
 
-**Open the app:** [https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html) — nothing to install.
+**Open the app:** [https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html) — free professional tools, nothing to install.
 
 Header layout (same on every tab):
 
@@ -132,7 +132,7 @@ Click **Tuner** in the header (any tab). Allow microphone access when prompted.
 - Green when within about ±5 cents of the nearest pitch (A4 = 440 Hz)
 - Pluck **one** string in a quiet room; laptop mics are weaker on very low bass
 - Close the dialog (or press Esc) to stop the mic — audio never leaves the browser
-- Free on the GitHub Pages site: no ads, no account
+- Free professional tool on the GitHub Pages site: no ads, no account
 
 ---
 

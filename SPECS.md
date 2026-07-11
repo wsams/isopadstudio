@@ -1,4 +1,4 @@
-# IsoPad Studio — project specifications
+# IsoPad Studio Pro — project specifications
 
 **Audience:** future coding agents and human contributors.
 
@@ -13,8 +13,9 @@
 
 ## What the product is
 
-**IsoPad Studio** is a static, dependency-free browser app for looking up **chords, scales/modes, and progressions**, then seeing **which pads or frets to play**.
+**IsoPad Studio Pro** is professional, static, dependency-free browser software for looking up **chords, scales/modes, and progressions**, seeing **which pads or frets to play**, and **tuning** with a built-in chromatic mic tuner. Free and powerful — not a novelty demo.
 
+- **Product name:** IsoPad Studio Pro (UI badge **Pro**; marketing copy may say **Professional**)
 - **Live app:** https://wsams.github.io/isopadstudio/index.html  
 - **Source:** https://github.com/wsams/isopadstudio  
 - **License:** MIT  
@@ -103,7 +104,7 @@ Songs re-resolve bars when layout/instrument/tuning/capo/pad map changes (`reres
 
 **Row 1 (static height — do not nest growing option lists here):**
 
-- Brand + `Logo.svg` mark (**IPS** monogram with 2×2 pad motif)
+- Brand + `Logo.svg` mark (**IPS** monogram) + title **IsoPad Studio** with **Pro** badge
 - Compact **Pads | Strings** family toggle (`#instrument-switch`)
 - Main tabs: Library · Progressions · Song Builder · Pads/Tuning · Pad Player/Strings
 - **Tuner** button (`#btn-tuner`) — opens chromatic mic tuner modal (`#tuner-modal`)
@@ -357,7 +358,7 @@ New screenshots: prefer `screenshots/NN-kebab-name.png`, document them in [MANUA
 
 ## Historical names
 
-Earlier iterations / forks in the wider workspace included names like **MPC16 Chords** and **ChromaPad**. Current product name is **IsoPad Studio**; storage keys and globals use the `isopadstudio` / `IsoPad*` prefix, with legacy key reads for migration.
+Earlier iterations / forks in the wider workspace included names like **MPC16 Chords** and **ChromaPad**. Current product name is **IsoPad Studio Pro**; storage keys and globals use the `isopadstudio` / `IsoPad*` prefix, with legacy key reads for migration.
 
 ---
 

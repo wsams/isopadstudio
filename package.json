@@ -2,7 +2,7 @@
   "name": "isopadstudio",
   "private": true,
   "version": "1.6.0",
-  "description": "Chord and scale charts for pad controllers with editable pad note maps (4×4, 2×4, 2×6, 2×8)",
+  "description": "IsoPad Studio Pro — professional chord, scale, and progression charts for pads and strings, plus a free chromatic tuner",
   "license": "MIT",
   "engines": {
     "node": ">=20"

@@ -843,6 +843,21 @@ input {
   letter-spacing: -0.02em;
 }
 
+.brand-pro {
+  display: inline-block;
+  margin-left: 0.15em;
+  padding: 0.12em 0.42em 0.14em;
+  border-radius: 6px;
+  font-size: 0.55em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+  text-transform: uppercase;
+  color: #111;
+  background: linear-gradient(145deg, #f0c040, #e8a83a);
+  box-shadow: 0 2px 8px rgba(240, 192, 64, 0.28);
+}
+
 .tagline {
   margin: 2px 0 0;
   color: var(--muted);
