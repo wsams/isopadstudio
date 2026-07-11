@@ -611,17 +611,76 @@ input {
 }
 
 .brand-mark {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-family: "IBM Plex Mono", monospace;
-  font-weight: 600;
-  font-size: 1.15rem;
-  background: linear-gradient(145deg, var(--accent), #ff7a59);
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.3) 0%, transparent 40%),
+    linear-gradient(145deg, #ff5a76, #ff7a59 52%, #e83d5c);
   color: #fff;
-  box-shadow: 0 8px 24px rgba(255, 77, 109, 0.35);
+  box-shadow:
+    0 8px 24px rgba(255, 77, 109, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+
+.brand-mark-letters {
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  padding-left: 0.16em;
+  line-height: 1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
+  position: relative;
+  z-index: 1;
+}
+
+.brand-mark-pads {
+  display: grid;
+  grid-template-columns: repeat(2, 4px);
+  grid-template-rows: repeat(2, 4px);
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.brand-mark-pads i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.35);
+}
+
+.brand-mark-pads i:nth-child(1) {
+  opacity: 1;
+}
+.brand-mark-pads i:nth-child(2) {
+  opacity: 0.72;
+}
+.brand-mark-pads i:nth-child(3) {
+  opacity: 0.72;
+}
+.brand-mark-pads i:nth-child(4) {
+  opacity: 0.45;
 }
 
 .brand h1 {
@@ -918,13 +977,27 @@ input[type="text"]:focus {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 54px);
-  grid-template-rows: repeat(4, 54px);
+  grid-template-columns: repeat(var(--cols, 4), 54px);
+  grid-template-rows: repeat(var(--rows, 4), 54px);
   gap: 8px;
 }
 
-.grid.rows-2 {
-  grid-template-rows: repeat(2, 54px);
+.grid.cols-2 { --cols: 2; }
+.grid.cols-3 { --cols: 3; }
+.grid.cols-4 { --cols: 4; }
+.grid.cols-6 { --cols: 6; }
+.grid.cols-8 { --cols: 8; }
+.grid.rows-2 { --rows: 2; }
+.grid.rows-3 { --rows: 3; }
+.grid.rows-4 { --rows: 4; }
+
+.grid.dual-bank {
+  grid-template-columns: repeat(4, 54px) 10px repeat(4, 54px);
+}
+
+.pad-bank-gap {
+  width: 10px;
+  pointer-events: none;
 }
 
 .pad {
@@ -1264,12 +1337,22 @@ input[type="text"]:focus {
 
 .pads-editor-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  grid-template-columns: repeat(var(--cols, 4), minmax(120px, 1fr));
   gap: 12px;
 }
 
-.pads-editor-grid.rows-2 {
-  /* same columns; fewer cells */
+.pads-editor-grid.cols-2 { --cols: 2; }
+.pads-editor-grid.cols-3 { --cols: 3; }
+.pads-editor-grid.cols-4 { --cols: 4; }
+.pads-editor-grid.cols-6 { --cols: 6; }
+.pads-editor-grid.cols-8 { --cols: 8; }
+
+.pads-editor-grid.dual-bank {
+  grid-template-columns: repeat(4, minmax(110px, 1fr)) 10px repeat(4, minmax(110px, 1fr));
+}
+
+.pads-editor-grid .pad-bank-gap {
+  min-height: 1px;
 }
 
 .pad-edit-cell {
@@ -1370,13 +1453,26 @@ input[type="text"]:focus {
 
 .big-grid {
   display: grid;
-  grid-template-columns: repeat(4, 72px);
-  grid-template-rows: repeat(4, 72px);
+  grid-template-columns: repeat(var(--cols, 4), 72px);
+  grid-template-rows: repeat(var(--rows, 4), 72px);
   gap: 10px;
 }
 
-.big-grid.rows-2 {
-  grid-template-rows: repeat(2, 72px);
+.big-grid.cols-2 { --cols: 2; }
+.big-grid.cols-3 { --cols: 3; }
+.big-grid.cols-4 { --cols: 4; }
+.big-grid.cols-6 { --cols: 6; }
+.big-grid.cols-8 { --cols: 8; }
+.big-grid.rows-2 { --rows: 2; }
+.big-grid.rows-3 { --rows: 3; }
+.big-grid.rows-4 { --rows: 4; }
+
+.big-grid.dual-bank {
+  grid-template-columns: repeat(4, 72px) 12px repeat(4, 72px);
+}
+
+.big-grid .pad-bank-gap {
+  width: 12px;
 }
 
 .big-grid .pad {

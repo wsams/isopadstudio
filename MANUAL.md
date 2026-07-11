@@ -8,7 +8,7 @@ Header layout (same on every tab):
 
 1. **Pads | Strings** — family toggle (stays put)
 2. Main tabs — Library, Progressions, Song Builder, then Pads/Tuning and Pad Player/Strings
-3. **Options tray** — layout chips (4×4 / 2×4) or instrument chips (Guitar, Uke, …)
+3. **Options tray** — layout chips (4×4 / 2×4 / 2×6 / 2×8) or instrument chips (Guitar, Uke, …)
 
 ---
 
@@ -44,7 +44,7 @@ Header layout (same on every tab):
 
 ![G major on a 2×4 pad grid with missing B](screenshots/02-library-pads-2x4-chord.png)
 
-Same **Gmaj**, but layout **2×4** (8 pads). Only G3 and D3 fit on this map, so the app reports **Missing on this pad map: B**. Fix that in the **Pads** tab (assign B somewhere) or pick another root/layout. Brand mark shows **8**.
+Same **Gmaj**, but layout **2×4** (8 pads). Only G3 and D3 fit on this map, so the app reports **Missing on this pad map: B**. Fix that in the **Pads** tab (assign B somewhere) or pick another root/layout.
 
 ---
 
@@ -98,7 +98,7 @@ Scale box on the fretboard: open tones as ○, fretted tones as dots, **R** = ro
 
 ![G Mixolydian on violin](screenshots/08-library-violin-scale.png)
 
-**Violin** uses a fingerboard-style chart (GDAE, high string at top). Same Library controls; brand mark shows **4** strings.
+**Violin** uses a fingerboard-style chart (GDAE, high string at top). Same Library controls.
 
 ### Guitar minor pentatonic
 

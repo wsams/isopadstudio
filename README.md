@@ -27,7 +27,9 @@ Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isop
 | Mode | Good for |
 |---|---|
 | **4×4 (16 pads)** | Akai MPD218 / MPD226, MPC-style pads, and similar |
-| **2×4 (8 pads)** | Akai LPD8, compact pad controllers |
+| **2×4 (8 pads)** | Akai LPD8, single nanoPAD bank |
+| **2×6 (12 pads)** | Wide 2-row pad controllers |
+| **2×8 (dual 2×4)** | Korg nanoPAD2 — two 2×4 banks side by side (same 16 notes as 4×4) |
 | **Strings** | Guitar, bass (4/5), uke, mandolin, banjo, violin family |
 
 Pick your instrument in the header. Pads light up on a grid; strings show fretboard / fingerboard charts. Map your own pad notes or open-string tuning. Songs can use a **chord capo** and a separate **scale capo**.
@@ -52,7 +54,7 @@ Library on **Pads · 4×4**: pick a chord (here **Gmaj**), see which pads light 
 - **Progressions** — 60+ stock progressions grouped by genre
 - **Song Builder** — sections of progressions, tempo, looping preview, scale overlay, print
 - **Pad / string player** — Library selection loads on the live grid so you can play each note; optional transpose
-- **4×4 and 2×4 layouts** — switch anytime; each keeps its own pad map
+- **Pad layouts** — 4×4, 2×4, 2×6, and dual 2×8 (nanoPAD2); each keeps its own pad map
 
 ## Requirements
 

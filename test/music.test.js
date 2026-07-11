@@ -35,11 +35,17 @@ describe("pad maps", () => {
   it("builds chromatic defaults from C3", () => {
     const map16 = defaultPadMap("4x4");
     const map8 = defaultPadMap("2x4");
+    const map12 = defaultPadMap("2x6");
+    const mapDual = defaultPadMap("2x8");
     assert.equal(map16.length, 16);
     assert.equal(map8.length, 8);
+    assert.equal(map12.length, 12);
+    assert.equal(mapDual.length, 16);
     assert.equal(map16[0], DEFAULT_START_MIDI);
     assert.equal(map16[15], DEFAULT_START_MIDI + 15);
     assert.equal(map8[7], DEFAULT_START_MIDI + 7);
+    assert.equal(map12[11], DEFAULT_START_MIDI + 11);
+    assert.deepEqual(mapDual, map16);
   });
 
   it("normalizes bad maps back to defaults", () => {

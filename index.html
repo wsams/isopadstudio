@@ -6,7 +6,7 @@
   <title>IsoPad Studio — Chord &amp; Scale Charts for Pads &amp; Strings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="app.css" />
 </head>
 <body>
@@ -14,7 +14,12 @@
     <header class="header" id="app-header">
       <div class="header-top">
         <div class="brand">
-          <span class="brand-mark">16</span>
+          <span class="brand-mark" role="img" aria-label="IsoPad Studio" title="IsoPad Studio">
+            <span class="brand-mark-letters" aria-hidden="true">IPS</span>
+            <span class="brand-mark-pads" aria-hidden="true">
+              <i></i><i></i><i></i><i></i>
+            </span>
+          </span>
           <div>
             <h1>IsoPad Studio</h1>
             <p class="tagline">Chords, scales &amp; progressions for pad controllers and string instruments</p>
@@ -50,9 +55,17 @@
               <span class="option-title">4×4</span>
               <span class="option-meta">16 pads</span>
             </button>
-            <button type="button" class="option-btn" data-instrument="2x4" title="LPD8, nanoPAD, and similar">
+            <button type="button" class="option-btn" data-instrument="2x4" title="LPD8, single nanoPAD bank, and similar">
               <span class="option-title">2×4</span>
               <span class="option-meta">8 pads</span>
+            </button>
+            <button type="button" class="option-btn" data-instrument="2x6" title="2 rows × 6 pads (12 pads)">
+              <span class="option-title">2×6</span>
+              <span class="option-meta">12 pads</span>
+            </button>
+            <button type="button" class="option-btn" data-instrument="2x8" title="Korg nanoPAD2 — two 2×4 banks side by side (same 16 pads as 4×4)">
+              <span class="option-title">2×8</span>
+              <span class="option-meta">dual 2×4</span>
             </button>
           </div>
         </div>
@@ -198,7 +211,7 @@
       <div class="toolbar">
         <p class="hint inline pads-intro" id="pads-intro">
           Assign a note to each pad. Defaults are chromatic from <strong>C3</strong> (Pad 1).
-          Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4 and 2×4) in localStorage.
+          Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4, 2×4, 2×6, 2×8) in localStorage.
         </p>
       </div>
       <div class="toolbar secondary" id="pads-reset-row">

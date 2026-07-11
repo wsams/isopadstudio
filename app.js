@@ -130,7 +130,6 @@
       cols: 4,
       rows: 4,
       pads: 16,
-      brand: "16",
       label: "4×4 · 16 pads",
       devices: "MPD218, MPC pads, and similar",
     },
@@ -139,9 +138,35 @@
       cols: 4,
       rows: 2,
       pads: 8,
-      brand: "8",
       label: "2×4 · 8 pads",
-      devices: "LPD8, nanoPAD, and similar",
+      devices: "LPD8, single nanoPAD bank, and similar",
+    },
+    "2x6": {
+      id: "2x6",
+      cols: 6,
+      rows: 2,
+      pads: 12,
+      label: "2×6 · 12 pads",
+      devices: "2 rows × 6 pads",
+    },
+    /**
+     * Dual 2×4 (e.g. Korg nanoPAD2): same 16 pads as 4×4, but the upper two
+     * rows of a 4×4 sit to the right of the lower two rows.
+     * Visual (bottom→top):  0 1 2 3 | 8  9 10 11
+     *                       4 5 6 7 | 12 13 14 15
+     */
+    "2x8": {
+      id: "2x8",
+      cols: 8,
+      rows: 2,
+      pads: 16,
+      label: "2×8 · dual 2×4",
+      devices: "Korg nanoPAD2 and similar (two 2×4 banks side by side)",
+      bankGapAfterCol: 3,
+      padAt(row, col) {
+        if (col < 4) return row * 4 + col;
+        return 8 + row * 4 + (col - 4);
+      },
     },
   };
 
@@ -237,9 +262,16 @@
       return {
         "4x4": normalizePadMap(parsed["4x4"], "4x4"),
         "2x4": normalizePadMap(parsed["2x4"], "2x4"),
+        "2x6": normalizePadMap(parsed["2x6"], "2x6"),
+        "2x8": normalizePadMap(parsed["2x8"], "2x8"),
       };
     } catch {
-      return { "4x4": defaultPadMap("4x4"), "2x4": defaultPadMap("2x4") };
+      return {
+        "4x4": defaultPadMap("4x4"),
+        "2x4": defaultPadMap("2x4"),
+        "2x6": defaultPadMap("2x6"),
+        "2x8": defaultPadMap("2x8"),
+      };
     }
   }
 
@@ -823,8 +855,13 @@
     const node = document.createElement(tag);
     Object.entries(attrs).forEach(([k, v]) => {
       if (k === "class") node.className = v;
-      else if (k === "style" && typeof v === "object") Object.assign(node.style, v);
-      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (k === "style" && typeof v === "object") {
+        Object.entries(v).forEach(([prop, val]) => {
+          if (val == null) return;
+          if (prop.startsWith("--")) node.style.setProperty(prop, String(val));
+          else node.style[prop] = String(val);
+        });
+      } else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
       else if (k === "html") node.innerHTML = v;
       else if (k === "value") node.value = v == null ? "" : String(v);
       else if (v === false || v == null) return;
@@ -835,6 +872,11 @@
       node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
     });
     return node;
+  }
+
+  function padIndexAt(layout, row, col) {
+    if (typeof layout.padAt === "function") return layout.padAt(row, col);
+    return row * layout.cols + col;
   }
 
   function buildGrid(pads, color, {
@@ -848,12 +890,17 @@
     if (!layout) return el("div", { class: "grid" });
     const map = getPadMap();
     const primarySet = new Set(primaryPads);
+    const dual = layout.bankGapAfterCol != null;
     const grid = el("div", {
-      class: `${size === "big" ? "big-grid" : "grid"} rows-${layout.rows}`,
+      class: `${size === "big" ? "big-grid" : "grid"} rows-${layout.rows} cols-${layout.cols}${dual ? " dual-bank" : ""}`,
+      style: {
+        "--cols": String(layout.cols),
+        "--rows": String(layout.rows),
+      },
     });
     for (let row = layout.rows - 1; row >= 0; row--) {
       for (let col = 0; col < layout.cols; col++) {
-        const padIndex = row * layout.cols + col;
+        const padIndex = padIndexAt(layout, row, col);
         const on = pads.includes(padIndex);
         const primary = primarySet.has(padIndex);
         const pad = el(
@@ -874,6 +921,9 @@
         );
         if (interactive) pad.dataset.pad = String(padIndex);
         grid.appendChild(pad);
+        if (dual && col === layout.bankGapAfterCol) {
+          grid.appendChild(el("div", { class: "pad-bank-gap", "aria-hidden": "true" }));
+        }
       }
     }
     return grid;
@@ -1819,7 +1869,6 @@
   }
 
   function updateInstrumentChrome() {
-    const mark = document.querySelector(".brand-mark");
     const switcher = document.getElementById("instrument-switch");
     const family = isStringMode() ? "strings" : "pads";
     fillStringChips();
@@ -1853,7 +1902,6 @@
 
     if (isStringMode()) {
       const inst = currentStringInstrument();
-      if (mark) mark.textContent = String(inst.strings);
       document.body.dataset.instrument = inst.id;
       document.body.dataset.family = "strings";
       const tabPads = document.getElementById("tab-pads");
@@ -1874,7 +1922,6 @@
       }
     } else {
       const layout = currentLayout();
-      if (mark) mark.textContent = layout.brand;
       document.body.dataset.instrument = layout.id;
       document.body.dataset.family = "pads";
       const tabPads = document.getElementById("tab-pads");
@@ -1884,7 +1931,7 @@
       const intro = document.getElementById("pads-intro");
       if (intro) {
         intro.innerHTML =
-          'Assign a note to each pad. Defaults are chromatic from <strong>C3</strong> (Pad 1). Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4 and 2×4) in localStorage.';
+          'Assign a note to each pad. Defaults are chromatic from <strong>C3</strong> (Pad 1). Piano middle C is <strong>C4</strong> — tagged when present. Maps are saved per layout (4×4, 2×4, 2×6, 2×8) in localStorage.';
       }
       const padsReset = document.getElementById("pads-reset-row");
       const tuningReset = document.getElementById("tuning-reset-row");
@@ -2101,10 +2148,17 @@
 
     const layout = currentLayout();
     const map = getPadMap();
-    const grid = el("div", { class: `pads-editor-grid rows-${layout.rows}` });
+    const dual = layout.bankGapAfterCol != null;
+    const grid = el("div", {
+      class: `pads-editor-grid rows-${layout.rows} cols-${layout.cols}${dual ? " dual-bank" : ""}`,
+      style: {
+        "--cols": String(layout.cols),
+        "--rows": String(layout.rows),
+      },
+    });
     for (let row = layout.rows - 1; row >= 0; row--) {
       for (let col = 0; col < layout.cols; col++) {
-        const padIndex = row * layout.cols + col;
+        const padIndex = padIndexAt(layout, row, col);
         const midi = map[padIndex];
         const parts = midiParts(midi);
         const isMiddleC = midi === 60;
@@ -2160,6 +2214,9 @@
           ),
         ]);
         grid.appendChild(cell);
+        if (dual && col === layout.bankGapAfterCol) {
+          grid.appendChild(el("div", { class: "pad-bank-gap", "aria-hidden": "true" }));
+        }
       }
     }
     host.appendChild(grid);

@@ -72,9 +72,9 @@ Globals: `IsoPadMusic`, `IsoPadStrings`, `ISOPAD_PROGRESSIONS` (with legacy alia
 
 Important fields:
 
-- `instrument` — pad layout id (`4x4` \| `2x4`) **or** string instrument id (`guitar6`, …)
+- `instrument` — pad layout id (`4x4` \| `2x4` \| `2x6` \| `2x8`) **or** string instrument id (`guitar6`, …)
 - `lastPadInstrument` / `lastStringInstrument` — restore when toggling Pads ↔ Strings
-- `padMaps` — `{ "4x4": number[], "2x4": number[] }` MIDI per pad
+- `padMaps` — `{ "4x4"|"2x4"|"2x6"|"2x8": number[] }` MIDI per pad
 - `tunings` — `{ [instrumentId]: number[] }` open MIDI low→high
 - Library: `kind` (`chord`\|`scale`), `category`, `formula`, `root`, `color`, `showAllRoots`
 - Songs: `songs[]`, `activeSongId`
@@ -102,7 +102,7 @@ Songs re-resolve bars when layout/instrument/tuning/capo/pad map changes (`reres
 
 **Row 1 (static height — do not nest growing option lists here):**
 
-- Brand + `brand-mark` (shows `16` / `8` for pads, or string count for strings)
+- Brand + `brand-mark` (static **IPS** monogram for IsoPad Studio)
 - Compact **Pads | Strings** family toggle (`#instrument-switch`)
 - Main tabs: Library · Progressions · Song Builder · Pads/Tuning · Pad Player/Strings
 
@@ -144,12 +144,16 @@ Switching family restores `lastPadInstrument` / `lastStringInstrument`.
 
 ### Layouts
 
-| Id | Grid | Pads | Brand mark |
+| Id | Grid | Pads | Notes |
 |---|---|---|---|
-| `4x4` | 4×4 | 16 | `16` |
-| `2x4` | 2×4 | 8 | `8` |
+| `4x4` | 4×4 | 16 | MPD / MPC style |
+| `2x4` | 2×4 | 8 | LPD8 / single nanoPAD bank |
+| `2x6` | 2×6 | 12 | 2 rows × 6 pads (row-major, same play logic as other layouts) |
+| `2x8` | 2×8 dual bank | 16 | nanoPAD2-style: same 16 pads as 4×4; upper two 4×4 rows sit to the **right** of the lower two |
 
 Grid rendering draws **bottom row first visually** (pad 1 bottom-left) to match typical controller orientation.
+
+**`2x8` index map** (row 0 = bottom): left bank `row*4+col`, right bank `8+row*4+(col-4)`. Optional `bankGapAfterCol` inserts a visual gap between banks. Layouts may define `padAt(row, col)` when visual order ≠ row-major.
 
 ### Pad maps
 
@@ -262,7 +266,7 @@ Legacy: songs with top-level `bars` migrate into a single section on load (`norm
 | `isopadstudio.layout` | Last pad layout (also written when on pads) |
 | `isopadstudio.lastPad` | Last pad layout for family toggle |
 | `isopadstudio.lastString` | Last string instrument for family toggle |
-| `isopadstudio.padMaps.v1` | `{ "4x4", "2x4" }` MIDI maps |
+| `isopadstudio.padMaps.v1` | `{ "4x4", "2x4", "2x6", "2x8" }` MIDI maps |
 | `isopadstudio.tunings.v1` | Open tunings per string instrument |
 
 Legacy read fallbacks exist for older ChromaPad / mpc16chords keys (songs, active, layout, padMaps). Prefer writing only current keys.

@@ -23,8 +23,29 @@ describe("instruments", () => {
 
   it("distinguishes pad layouts from string instruments", () => {
     assert.equal(S.isPadLayout("4x4"), true);
+    assert.equal(S.isPadLayout("2x6"), true);
+    assert.equal(S.isPadLayout("2x8"), true);
     assert.equal(S.isStringInstrument("guitar6"), true);
     assert.equal(S.isStringInstrument("4x4"), false);
+    assert.equal(S.isPadLayout("guitar6"), false);
+  });
+});
+
+describe("dual 2×4 pad index map", () => {
+  it("maps visual cells like nanoPAD2 (upper 4×4 rows on the right)", () => {
+    // Same mapping as LAYOUTS["2x8"].padAt in app.js
+    function padAt(row, col) {
+      if (col < 4) return row * 4 + col;
+      return 8 + row * 4 + (col - 4);
+    }
+    assert.deepEqual(
+      [0, 1, 2, 3, 4, 5, 6, 7].map((c) => padAt(0, c)),
+      [0, 1, 2, 3, 8, 9, 10, 11]
+    );
+    assert.deepEqual(
+      [0, 1, 2, 3, 4, 5, 6, 7].map((c) => padAt(1, c)),
+      [4, 5, 6, 7, 12, 13, 14, 15]
+    );
   });
 });
 
