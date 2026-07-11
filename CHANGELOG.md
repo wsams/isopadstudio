@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.4.0](https://github.com/wsams/isopadstudio/compare/v1.3.0...v1.4.0) (2026-07-11)
+
+
+### Features
+
+* Additional pad configurations ([4c3efa8](https://github.com/wsams/isopadstudio/commit/4c3efa812dbc2a3c430bb399e4f3cf0d3f9b7bc7))
+
 # [1.3.0](https://github.com/wsams/isopadstudio/compare/v1.2.1...v1.3.0) (2026-07-11)
 
 
