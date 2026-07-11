@@ -12,10 +12,17 @@ Built for people with gear like:
 
 The idea is simple. Many of these instruments are *isomorphic* — once you learn a shape, you can move it to play in another key. IsoPad Studio shows those shapes as charts you can hear, save into songs, and print. New to that idea? Browse a chord or scale and click to hear it. Already deep into theory? There’s a large library of qualities, modes, and stock progressions by genre.
 
-**Use it in your browser — nothing to install:**  
-[https://wsams.github.io/isopadstudio/index.html](https://wsams.github.io/isopadstudio/index.html)
+---
+
+### [▶ Open IsoPad Studio — live in your browser](https://wsams.github.io/isopadstudio/index.html)
+
+**Nothing to install.** Works in Chrome, Firefox, Safari, or Edge.
+
+[![Open live app](https://img.shields.io/badge/Open_live_app-wsams.github.io-ff4d6d?style=for-the-badge&logo=github&logoColor=white)](https://wsams.github.io/isopadstudio/index.html)
 
 Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isopadstudio)
+
+---
 
 | Mode | Good for |
 |---|---|
