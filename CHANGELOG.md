@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.3.0](https://github.com/wsams/isopadstudio/compare/v1.2.1...v1.3.0) (2026-07-11)
+
+
+### Features
+
+* UI updates ([402b8c8](https://github.com/wsams/isopadstudio/commit/402b8c82e8c512f599aea0964a98204176bc91af))
+
 ## [1.2.1](https://github.com/wsams/isopadstudio/compare/v1.2.0...v1.2.1) (2026-07-10)
 
 
