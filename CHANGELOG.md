@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/wsams/isopadstudio/compare/v1.6.0...v1.6.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* Improve string diagrams ([e49645c](https://github.com/wsams/isopadstudio/commit/e49645c7a427897b2719574cfffa0152f8479a9b))
+
 # [1.6.0](https://github.com/wsams/isopadstudio/compare/v1.5.0...v1.6.0) (2026-07-11)
 
 

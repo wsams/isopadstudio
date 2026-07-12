@@ -1,7 +1,7 @@
 {
   "name": "isopadstudio",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "IsoPad Studio Pro — professional chord, scale, and progression charts for pads and strings, plus a free chromatic tuner",
   "license": "MIT",
   "engines": {
