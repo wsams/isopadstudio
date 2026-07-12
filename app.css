@@ -594,7 +594,7 @@ input {
 .fret-grid {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 
 .fret-string-row {
@@ -604,7 +604,7 @@ input {
 }
 
 .fret-string-row.muted {
-  opacity: 0.88;
+  opacity: 0.72;
 }
 
 .fret-string-row.muted .fret-string-name,
@@ -613,12 +613,12 @@ input {
 }
 
 .fret-string-row.muted .fret-cells {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border-left-color: rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.22) !important;
+  border-left-color: rgba(255, 255, 255, 0.22);
 }
 
 .fret-string-row.muted .fret-cell {
-  border-right-color: rgba(255, 255, 255, 0.1);
+  border-right-color: rgba(255, 255, 255, 0.08);
 }
 
 .fret-string-name {
@@ -651,13 +651,17 @@ input {
   overflow: hidden;
 }
 
-/* Alternating string lanes — background only, no extra wire lines */
+/* Alternating string lanes — light tints; 1px borders separate strings */
 .fret-string-row:nth-child(odd) .fret-cells {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .fret-string-row:nth-child(even) .fret-cells {
-  background: rgba(61, 184, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.fret-string-row + .fret-string-row .fret-cells {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .fretboard.fingerboard .fret-cells {
