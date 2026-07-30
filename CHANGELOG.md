@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/wsams/isopadstudio/compare/v1.6.1...v1.6.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* Point self-hosted Renovate at this repository ([#2](https://github.com/wsams/isopadstudio/issues/2)) ([f859549](https://github.com/wsams/isopadstudio/commit/f859549ff049d3d4091b2b124ae0bcfb55b8fffe))
+
 ## [1.6.1](https://github.com/wsams/isopadstudio/compare/v1.6.0...v1.6.1) (2026-07-12)
 
 
