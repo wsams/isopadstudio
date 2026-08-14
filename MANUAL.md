@@ -112,7 +112,8 @@ In string mode the **Pads** tab becomes **Tuning**.
 
 1. Pick a preset (**Drop D · DADGBE** here) or edit each open string (note + octave, ±1 semitone).
 2. Order is **low → high, left → right** (String 1 = lowest).
-3. Charts update immediately. Capo stays per song, not on this tab.
+3. **Active strings:** toggle each string **On/Off**, or use guitar presets **Treble 3** (G·B·E — three-note chords on the top three) and **Treble 4** (D·G·B·E — add the fourth for 7ths). Handy for treble-only practice or when a string breaks.
+4. Charts update immediately. Capo stays per song, not on this tab.
 
 After Drop D, Library charts follow the new open notes:
 

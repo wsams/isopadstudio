@@ -78,6 +78,7 @@ Important fields:
 - `lastPadInstrument` / `lastStringInstrument` — restore when toggling Pads ↔ Strings
 - `padMaps` — `{ "4x4"|"2x4"|"2x6"|"2x8": number[] }` MIDI per pad
 - `tunings` — `{ [instrumentId]: number[] }` open MIDI low→high
+- `disabledStrings` — `{ [instrumentId]: boolean[] }` low→high; `true` forces mute in charts
 - Library: `kind` (`chord`\|`scale`), `category`, `formula`, `root`, `color`, `showAllRoots`
 - Songs: `songs[]`, `activeSongId`
 - Progressions UI: `progKey`, `progGenre`, `progSearch`
@@ -213,6 +214,14 @@ Zithers with many strings (`guzheng`, `koto`) use **open-string voicing**: chord
 - `coerceTuningOrder` repairs reversed saved tunings (e.g. `EBGDAE` → `EADGBE`) except re-entrant uke.
 - Charts must use **live** `getTuning()`, not a stale `diagram.openMidi` for labels.
 
+### Active / disabled strings
+
+- Per-instrument boolean mask (low → high) in `localStorage` key `isopadstudio.disabledStrings.v1`.
+- Disabled strings are **forced mute** in chord search and scale diagrams; curated guitar shapes are skipped when any string is disabled (search rebuilds the voicing on the remaining strings).
+- Guitar quick sets on the Tuning tab: **All strings**, **Treble 3** (G·B·E — triads on the top three), **Treble 4** (D·G·B·E — room for 7ths). Any instrument can toggle individual strings On/Off (e.g. broken string).
+- At least one string must remain enabled. Reset tuning also re-enables all strings.
+- `resolveChordShape` / `resolveScaleDiagram` accept `opts.disabledStrings` (boolean[] or index[]) and return `disabledStrings` on the diagram. Charts show a **Treble 3** / **N strings** badge when a set is active.
+
 ### Fretboard chart orientation (critical UX)
 
 - **Display:** **high string at top**, low string at bottom (standard published chord charts).
@@ -221,10 +230,10 @@ Zithers with many strings (`guzheng`, `koto`) use **open-string voicing**: chord
 
 ### Chord / scale resolution
 
-- Guitar **standard tuning** uses curated open/barre shapes when available; otherwise (and for other tunings/instruments) `searchVoicing`.
+- Guitar **standard tuning** uses curated open/barre shapes when available; otherwise (and for other tunings/instruments, or when strings are disabled) `searchVoicing`.
 - Instruments with `voicing: "open"` (guzheng, koto) light matching **open strings** only.
-- Chord dots may show **finger numbers** (1–4); open = ○, muted = × (muted rows slightly dimmed).
-- Scales: box of open + ~4 frets; open scale tones as ○ at the nut.
+- Chord dots may show **finger numbers** (1–4); open = ○, muted = × (muted rows slightly dimmed; disabled strings dimmer still).
+- Scales: box of open + ~4 frets; open scale tones as ○ at the nut; disabled strings omitted.
 - Capo: frets relative to capo; sounding pitch = open + capo + fret.
 
 ### Capo
@@ -288,6 +297,7 @@ Legacy: songs with top-level `bars` migrate into a single section on load (`norm
 | `isopadstudio.lastString` | Last string instrument for family toggle |
 | `isopadstudio.padMaps.v1` | `{ "4x4", "2x4", "2x6", "2x8" }` MIDI maps |
 | `isopadstudio.tunings.v1` | Open tunings per string instrument |
+| `isopadstudio.disabledStrings.v1` | Per-instrument boolean[] (low→high); `true` = muted/off |
 
 Legacy read fallbacks exist for older ChromaPad / mpc16chords keys (songs, active, layout, padMaps). Prefer writing only current keys.
 
