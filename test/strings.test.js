@@ -160,6 +160,69 @@ describe("guitar tunings", () => {
   });
 });
 
+describe("disabled strings / treble sets", () => {
+  it("normalizes boolean masks and index lists", () => {
+    assert.deepEqual(S.normalizeDisabledStrings([true, false, true], 3), [true, false, true]);
+    assert.deepEqual(S.normalizeDisabledStrings([0, 2], 4), [true, false, true, false]);
+    assert.deepEqual(S.normalizeDisabledStrings(null, 2), [false, false]);
+  });
+
+  it("matches guitar treble presets", () => {
+    assert.equal(S.matchStringSetId("guitar6", S.applyStringSet("guitar6", "treble3")), "treble3");
+    assert.equal(S.matchStringSetId("guitar6", S.applyStringSet("guitar6", "treble4")), "treble4");
+    assert.equal(S.matchStringSetId("guitar6", S.applyStringSet("guitar6", "all")), "all");
+  });
+
+  it("voices C major on treble 3 (G·B·E only)", () => {
+    const disabled = S.applyStringSet("guitar6", "treble3");
+    const shape = S.resolveChordShape("guitar6", "C", [0, 4, 7], 0, null, { disabledStrings: disabled });
+    assert.deepEqual(shape.absoluteFrets.slice(0, 3), [null, null, null]);
+    assert.ok(shape.absoluteFrets.slice(3).every((f) => f != null));
+    assert.deepEqual(shape.missing, []);
+    assert.deepEqual(shape.disabledStrings, disabled);
+  });
+
+  it("voices G major triad on treble 3 without using bass strings", () => {
+    const disabled = S.applyStringSet("guitar6", "treble3");
+    const shape = S.resolveChordShape("guitar6", "G", [0, 4, 7], 0, null, { disabledStrings: disabled });
+    assert.ok(shape.absoluteFrets[0] == null && shape.absoluteFrets[1] == null && shape.absoluteFrets[2] == null);
+    const pcs = new Set(shape.midis.map(S.midiPitchClass));
+    assert.ok(pcs.has(S.noteToPc("G")));
+    assert.ok(pcs.has(S.noteToPc("B")));
+    assert.ok(pcs.has(S.noteToPc("D")));
+    assert.deepEqual(shape.missing, []);
+  });
+
+  it("covers C7 on treble 4 (D·G·B·E)", () => {
+    const disabled = S.applyStringSet("guitar6", "treble4");
+    const shape = S.resolveChordShape("guitar6", "C", [0, 4, 7, 10], 0, null, { disabledStrings: disabled });
+    assert.equal(shape.absoluteFrets[0], null);
+    assert.equal(shape.absoluteFrets[1], null);
+    assert.deepEqual(shape.missing, []);
+    const pcs = new Set(shape.midis.map(S.midiPitchClass));
+    assert.ok(pcs.has(S.noteToPc("C")));
+    assert.ok(pcs.has(S.noteToPc("E")));
+    assert.ok(pcs.has(S.noteToPc("G")));
+    assert.ok(pcs.has(S.noteToPc("A#")));
+  });
+
+  it("omits disabled strings from scale diagrams", () => {
+    const disabled = S.applyStringSet("guitar6", "treble3");
+    const diag = S.resolveScaleDiagram("guitar6", "C", [0, 2, 4, 5, 7, 9, 11], 0, null, {
+      disabledStrings: disabled,
+    });
+    assert.ok(diag.dots.every((d) => d.string >= 3));
+    assert.ok(diag.dots.length >= 3);
+  });
+
+  it("still returns curated full-neck shapes when no strings are disabled", () => {
+    const shape = S.resolveChordShape("guitar6", "C", [0, 4, 7], 0, null, {
+      disabledStrings: [false, false, false, false, false, false],
+    });
+    assert.deepEqual(shape.absoluteFrets, [null, 3, 2, 0, 1, 0]);
+  });
+});
+
 describe("capo helpers", () => {
   it("clamps capo to 0–12", () => {
     assert.equal(S.clampCapo(-1), 0);

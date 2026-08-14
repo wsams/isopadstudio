@@ -591,6 +591,11 @@ input {
   color: var(--c3);
 }
 
+.fret-stringset-badge {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .fret-grid {
   display: flex;
   flex-direction: column;
@@ -605,6 +610,10 @@ input {
 
 .fret-string-row.muted {
   opacity: 0.72;
+}
+
+.fret-string-row.disabled {
+  opacity: 0.42;
 }
 
 .fret-string-row.muted .fret-string-name,
@@ -735,6 +744,18 @@ input {
   border-color: var(--c2);
 }
 
+.string-pluck.is-disabled,
+.string-pluck:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.string-pluck.is-disabled:hover,
+.string-pluck:disabled:hover {
+  border-color: var(--border);
+}
+
 .string-pluck-name {
   font-weight: 600;
   font-family: "IBM Plex Mono", monospace;
@@ -792,6 +813,11 @@ input {
   background: var(--bg-elevated);
 }
 
+.tuning-string-card.is-disabled {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
 .tuning-string-index {
   font-size: 0.72rem;
   color: var(--muted);
@@ -810,6 +836,23 @@ input {
   font-size: 0.85rem;
   color: var(--muted);
   font-family: "IBM Plex Mono", monospace;
+}
+
+.tuning-string-toggle {
+  align-self: stretch;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tuning-string-toggle.on {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+}
+
+.tuning-summary-strings {
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
 }
 
 .tuning-nudge {

@@ -178,6 +178,7 @@
   const LAST_STRING_KEY = "isopadstudio.lastString";
   const PADMAP_KEY = "isopadstudio.padMaps.v1";
   const TUNING_KEY = "isopadstudio.tunings.v1";
+  const DISABLED_STRINGS_KEY = "isopadstudio.disabledStrings.v1";
   const LEGACY_KEYS = {
     songs: ["isopadstudio.songs.v1", "chromapad.songs.v1", "mpc16chords.songs.v1"],
     active: ["chromapad.activeSongId", "mpc16chords.activeSongId"],
@@ -307,12 +308,33 @@
     }
   }
 
+  function loadDisabledStrings() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(DISABLED_STRINGS_KEY) || "{}");
+      const out = {};
+      S.listInstruments().forEach((inst) => {
+        out[inst.id] = S.normalizeDisabledStrings(parsed[inst.id], inst.strings);
+      });
+      return out;
+    } catch {
+      const out = {};
+      S.listInstruments().forEach((inst) => {
+        out[inst.id] = S.normalizeDisabledStrings(null, inst.strings);
+      });
+      return out;
+    }
+  }
+
   function persistPadMaps() {
     localStorage.setItem(PADMAP_KEY, JSON.stringify(state.padMaps));
   }
 
   function persistTunings() {
     localStorage.setItem(TUNING_KEY, JSON.stringify(state.tunings));
+  }
+
+  function persistDisabledStrings() {
+    localStorage.setItem(DISABLED_STRINGS_KEY, JSON.stringify(state.disabledStrings));
   }
 
   function persistInstrument() {
@@ -342,6 +364,18 @@
       persistTunings();
     }
     return coerced.slice();
+  }
+
+  function getDisabledStrings() {
+    const id = state.instrument;
+    if (!S.isStringInstrument(id)) return [];
+    const inst = S.getInstrument(id);
+    if (!state.disabledStrings[id]) {
+      state.disabledStrings[id] = S.normalizeDisabledStrings(null, inst.strings);
+    } else {
+      state.disabledStrings[id] = S.normalizeDisabledStrings(state.disabledStrings[id], inst.strings);
+    }
+    return state.disabledStrings[id].slice();
   }
 
   function getChordCapo() {
@@ -882,6 +916,7 @@
     lastStringInstrument: loadLastStringInstrument(),
     padMaps: loadPadMaps(),
     tunings: loadTunings(),
+    disabledStrings: loadDisabledStrings(),
     kind: "chord",
     category: "All",
     formula: "Major 7",
@@ -1126,6 +1161,21 @@
     }
     if (capo > 0) meta.appendChild(el("span", { class: "fret-capo-badge" }, `Capo ${capo}`));
     if (baseFret > 1) meta.appendChild(el("span", { class: "fret-base-label" }, `${baseFret}fr`));
+    const disabled = Array.isArray(diagram.disabledStrings)
+      ? diagram.disabledStrings
+      : getDisabledStrings();
+    if (S.hasDisabledStrings(disabled)) {
+      const enabled = S.enabledStringCount(disabled);
+      const setId = S.matchStringSetId(inst.id, disabled);
+      const set = setId ? S.listStringSets(inst.id).find((s) => s.id === setId) : null;
+      meta.appendChild(
+        el(
+          "span",
+          { class: "fret-stringset-badge", title: set?.detail || `${enabled} active strings` },
+          set && set.id !== "all" ? set.label : `${enabled} strings`
+        )
+      );
+    }
     if (meta.childNodes.length) board.appendChild(meta);
 
     const grid = el("div", { class: "fret-grid" });
@@ -1133,9 +1183,14 @@
     for (let s = stringCount - 1; s >= 0; s--) {
       let nutMark = "";
       let muted = false;
+      const stringOff = Boolean(disabled[s]);
       if (isScale && diagram.dots) {
         const openHit = diagram.dots.find((d) => d.string === s && d.fret === 0);
         if (openHit) nutMark = "○";
+        else if (stringOff) {
+          nutMark = "×";
+          muted = true;
+        }
       } else if (diagram.frets) {
         const f = diagram.frets[s];
         if (f == null) {
@@ -1147,7 +1202,7 @@
       }
 
       const stringRow = el("div", {
-        class: `fret-string-row${muted ? " muted" : ""}`,
+        class: `fret-string-row${muted ? " muted" : ""}${stringOff ? " disabled" : ""}`,
         "data-string": String(s),
       });
       stringRow.appendChild(el("span", { class: "fret-string-name" }, labels[s] || ""));
@@ -1193,10 +1248,15 @@
   function resolveStringChart(root, intervals, { isScale = false, capo = null } = {}) {
     const id = state.instrument;
     const tuning = getTuning();
+    const disabledStrings = getDisabledStrings();
     if (isScale) {
-      return S.resolveScaleDiagram(id, root, intervals, capo != null ? capo : getScaleCapo(), tuning);
+      return S.resolveScaleDiagram(id, root, intervals, capo != null ? capo : getScaleCapo(), tuning, {
+        disabledStrings,
+      });
     }
-    return S.resolveChordShape(id, root, intervals, capo != null ? capo : getChordCapo(), tuning);
+    return S.resolveChordShape(id, root, intervals, capo != null ? capo : getChordCapo(), tuning, {
+      disabledStrings,
+    });
   }
 
   function makeCard({
@@ -1367,12 +1427,21 @@
       const hint = document.getElementById("fit-hint");
       const missing = diagram.missing || [];
       if (missing.length) {
-        hint.textContent = `Hard to cover on this tuning: ${missing.join(", ")}. Try another voicing root or edit Tuning.`;
+        const disabled = getDisabledStrings();
+        hint.textContent = S.hasDisabledStrings(disabled)
+          ? `Hard to cover on the active strings: ${missing.join(", ")}. Enable more strings in Tuning, or try another root.`
+          : `Hard to cover on this tuning: ${missing.join(", ")}. Try another voicing root or edit Tuning.`;
       } else {
         const tuningName = S.tuningSummary(getTuning()) || "current tuning";
+        const disabled = getDisabledStrings();
+        const setId = S.matchStringSetId(state.instrument, disabled);
+        const setLabel =
+          setId && setId !== "all"
+            ? S.listStringSets(state.instrument).find((s) => s.id === setId)?.label
+            : null;
         hint.textContent = isScale
-          ? `Scale tones for ${tuningName} (capo applies to scales separately from chords in Song Builder). Click to hear ascending. Open the Strings tab to practice open strings alongside this selection.`
-          : `Chord chart for ${tuningName}. Capo frets are relative to the capo. Click to hear the voicing. Open the Strings tab to see this selection while you pluck open strings.`;
+          ? `Scale tones for ${tuningName}${setLabel ? ` · ${setLabel}` : ""} (capo applies to scales separately from chords in Song Builder). Click to hear ascending. Open the Strings tab to practice open strings alongside this selection.`
+          : `Chord chart for ${tuningName}${setLabel ? ` · ${setLabel}` : ""}. Capo frets are relative to the capo. Click to hear the voicing. Open the Strings tab to see this selection while you pluck open strings.`;
       }
     } else {
       const { pads, primaryPads, missing, rootIndex } = getActivePads(state.root, entry.intervals, {
@@ -1904,26 +1973,34 @@
     if (isStringMode()) {
       const inst = currentStringInstrument();
       const tuning = getTuning();
+      const disabled = getDisabledStrings();
       const board = el("div", { class: "string-player", id: "player-grid" });
       tuning.forEach((midi, i) => {
+        const isOff = Boolean(disabled[i]);
         board.appendChild(
           el(
             "button",
             {
               type: "button",
-              class: "string-pluck",
+              class: `string-pluck${isOff ? " is-disabled" : ""}`,
+              disabled: isOff,
+              title: isOff ? "String disabled in Tuning" : undefined,
               onClick: () => playTone(0, ensureAudio().currentTime, 0.55, { midi, peak: 0.22 }),
             },
             [
               el("span", { class: "string-pluck-name" }, S.tuningNoteNames(tuning)[i] || `S${i + 1}`),
-              el("span", { class: "string-pluck-note" }, midiToLabel(midi)),
+              el("span", { class: "string-pluck-note" }, isOff ? "off" : midiToLabel(midi)),
             ]
           )
         );
       });
       gridHost.replaceWith(board);
       if (titleEl) titleEl.textContent = "Open strings";
-      if (descEl) descEl.textContent = `${inst.label} — click a string to pluck open. Edit tuning in the Tuning tab.`;
+      if (descEl) {
+        descEl.textContent = S.hasDisabledStrings(disabled)
+          ? `${inst.label} — disabled strings stay muted. Edit active strings in the Tuning tab.`
+          : `${inst.label} — click a string to pluck open. Edit tuning in the Tuning tab.`;
+      }
       if (hintEl) hintEl.textContent = "Pluck open strings. Library selection is shown on the right.";
     } else {
       const grid = buildGrid([], "#555", {
@@ -2073,7 +2150,7 @@
       if (tabPlay) tabPlay.textContent = "Strings";
       const intro = document.getElementById("pads-intro");
       if (intro) {
-        intro.innerHTML = `Choose a preset (Standard, Drop D, …) or tune each open string. Labels on charts follow your tuning. Capo is set per song.`;
+        intro.innerHTML = `Choose a preset (Standard, Drop D, …) or tune each open string. Toggle strings Off for treble-only voicings or a broken string — charts still build chords on what’s left. Capo is set per song.`;
       }
       const padsReset = document.getElementById("pads-reset-row");
       const tuningReset = document.getElementById("tuning-reset-row");
@@ -2169,6 +2246,31 @@
     renderPadsEditor();
   }
 
+  function setStringEnabled(stringIndex, enabled) {
+    const id = state.instrument;
+    if (!S.isStringInstrument(id)) return;
+    const mask = getDisabledStrings();
+    if (stringIndex < 0 || stringIndex >= mask.length) return;
+    mask[stringIndex] = !enabled;
+    // Keep at least one string active
+    if (mask.every(Boolean)) mask[stringIndex] = false;
+    state.disabledStrings[id] = mask;
+    persistDisabledStrings();
+    refreshAfterPadMapChange();
+    renderPadsEditor();
+  }
+
+  function applyActiveStringSet(setId) {
+    if (!isStringMode()) return;
+    const id = state.instrument;
+    const next = S.applyStringSet(id, setId);
+    if (!next) return;
+    state.disabledStrings[id] = next;
+    persistDisabledStrings();
+    refreshAfterPadMapChange();
+    renderPadsEditor();
+  }
+
   function applyTuningPreset(presetId) {
     if (!isStringMode()) return;
     const id = state.instrument;
@@ -2188,8 +2290,11 @@
 
   function resetTuning() {
     if (!isStringMode()) return;
-    state.tunings[state.instrument] = S.defaultTuning(state.instrument);
+    const id = state.instrument;
+    state.tunings[id] = S.defaultTuning(id);
+    state.disabledStrings[id] = S.normalizeDisabledStrings(null, S.getInstrument(id).strings);
     persistTunings();
+    persistDisabledStrings();
     refreshAfterPadMapChange();
     renderPadsEditor();
   }
@@ -2202,9 +2307,12 @@
     if (isStringMode()) {
       const inst = currentStringInstrument();
       const tuning = getTuning();
+      const disabled = getDisabledStrings();
       const summary = S.tuningSummary(tuning);
       const activePreset = S.matchPresetId(state.instrument, tuning);
       const presets = S.listPresets(state.instrument);
+      const stringSets = S.listStringSets(state.instrument);
+      const activeSet = S.matchStringSetId(state.instrument, disabled);
 
       const wrap = el("div", { class: "tuning-studio" });
       wrap.appendChild(
@@ -2233,12 +2341,47 @@
         wrap.appendChild(chips);
       }
 
+      if (stringSets.length) {
+        wrap.appendChild(
+          el("div", { class: "tuning-summary" }, [
+            el("span", { class: "tuning-summary-label" }, "Active strings"),
+            el(
+              "span",
+              { class: "tuning-summary-notes tuning-summary-strings" },
+              `${S.enabledStringCount(disabled)} of ${inst.strings}`
+            ),
+          ])
+        );
+        const setChips = el("div", {
+          class: "tuning-presets tuning-string-sets",
+          role: "group",
+          "aria-label": "Active string sets",
+        });
+        stringSets.forEach((set) => {
+          setChips.appendChild(
+            el(
+              "button",
+              {
+                type: "button",
+                class: `chip${activeSet === set.id ? " active" : ""}`,
+                title: set.detail || set.label,
+                onClick: () => applyActiveStringSet(set.id),
+              },
+              `${set.label}${set.detail ? ` · ${set.detail.split("—")[0].trim()}` : ""}`
+            )
+          );
+        });
+        wrap.appendChild(setChips);
+      }
+
       const strip = el("div", { class: "tuning-strip" });
       tuning.forEach((midi, stringIndex) => {
         const parts = midiParts(midi);
+        const isOff = Boolean(disabled[stringIndex]);
         const noteSel = el("select", {
           class: "pad-note-select",
           "aria-label": `String ${stringIndex + 1} note`,
+          disabled: isOff,
           onChange: (e) => {
             const wrapEl = e.target.closest("[data-string-edit]");
             const oct = Number(wrapEl.querySelector(".pad-octave-select").value);
@@ -2253,6 +2396,7 @@
         const octSel = el("select", {
           class: "pad-octave-select",
           "aria-label": `String ${stringIndex + 1} octave`,
+          disabled: isOff,
           onChange: (e) => {
             const wrapEl = e.target.closest("[data-string-edit]");
             const note = wrapEl.querySelector(".pad-note-select").value;
@@ -2266,35 +2410,58 @@
         });
 
         strip.appendChild(
-          el("div", { class: "tuning-string-card", "data-string-edit": String(stringIndex) }, [
-            el("div", { class: "tuning-string-index" }, `String ${stringIndex + 1}`),
-            el("div", { class: "tuning-string-open" }, parts.note),
-            el("div", { class: "tuning-string-full" }, midiToLabel(midi)),
-            el("div", { class: "tuning-nudge" }, [
-              el("button", {
-                type: "button",
-                class: "btn",
-                title: "Tune down a semitone",
-                onClick: () => nudgeString(stringIndex, -1),
-              }, "−"),
-              el("button", {
-                type: "button",
-                class: "btn",
-                title: "Tune up a semitone",
-                onClick: () => nudgeString(stringIndex, 1),
-              }, "+"),
-            ]),
-            el("div", { class: "pad-edit-controls" }, [noteSel, octSel]),
-            el(
-              "button",
-              {
-                type: "button",
-                class: "btn ghost pad-audition",
-                onClick: () => playTone(0, ensureAudio().currentTime, 0.45, { midi, peak: 0.22 }),
-              },
-              "▶"
-            ),
-          ])
+          el(
+            "div",
+            {
+              class: `tuning-string-card${isOff ? " is-disabled" : ""}`,
+              "data-string-edit": String(stringIndex),
+            },
+            [
+              el("div", { class: "tuning-string-index" }, `String ${stringIndex + 1}`),
+              el("div", { class: "tuning-string-open" }, parts.note),
+              el("div", { class: "tuning-string-full" }, midiToLabel(midi)),
+              el(
+                "button",
+                {
+                  type: "button",
+                  class: `btn ghost tuning-string-toggle${isOff ? "" : " on"}`,
+                  title: isOff
+                    ? "Enable this string for chord charts"
+                    : "Disable this string (broken string / treble-only practice)",
+                  "aria-pressed": isOff ? "false" : "true",
+                  onClick: () => setStringEnabled(stringIndex, isOff),
+                },
+                isOff ? "Off" : "On"
+              ),
+              el("div", { class: "tuning-nudge" }, [
+                el("button", {
+                  type: "button",
+                  class: "btn",
+                  title: "Tune down a semitone",
+                  disabled: isOff,
+                  onClick: () => nudgeString(stringIndex, -1),
+                }, "−"),
+                el("button", {
+                  type: "button",
+                  class: "btn",
+                  title: "Tune up a semitone",
+                  disabled: isOff,
+                  onClick: () => nudgeString(stringIndex, 1),
+                }, "+"),
+              ]),
+              el("div", { class: "pad-edit-controls" }, [noteSel, octSel]),
+              el(
+                "button",
+                {
+                  type: "button",
+                  class: "btn ghost pad-audition",
+                  disabled: isOff,
+                  onClick: () => playTone(0, ensureAudio().currentTime, 0.45, { midi, peak: 0.22 }),
+                },
+                "▶"
+              ),
+            ]
+          )
         );
       });
       wrap.appendChild(strip);
@@ -2302,7 +2469,7 @@
         el(
           "p",
           { class: "hint" },
-          "Low → high, left to right. Use presets, nudge ±1 semitone, or set note and octave for any custom tuning. Charts update immediately."
+          "Low → high, left to right. Toggle strings Off to mute them in charts (treble-only practice or a broken string). Guitar presets: Treble 3 for triads on G·B·E, Treble 4 to add D for 7ths. Charts update immediately."
         )
       );
       host.appendChild(wrap);
