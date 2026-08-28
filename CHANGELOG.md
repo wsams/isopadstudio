@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/wsams/isopadstudio/compare/v1.8.0...v1.8.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* keep neck+thumb split even if a diagram omits regions ([#25](https://github.com/wsams/isopadstudio/issues/25)) ([f478c55](https://github.com/wsams/isopadstudio/commit/f478c55bfeba09353ab9b81bc2daf453ac3885ec))
+
 # [1.8.0](https://github.com/wsams/isopadstudio/compare/v1.7.0...v1.8.0) (2026-08-28)
 
 
