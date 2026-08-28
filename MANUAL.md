@@ -111,7 +111,9 @@ Category **Pentatonic & blues** · **Blues Scale** · root **A** · standard **E
 
 - Chart is a **standing bass**: nut at the top, high string (G) on the left, like a published Simandl fingerboard — not a guitar-style box.
 - Fret spacing follows a real string (long gaps in the low positions, tighter toward the octave).
-- The header tray shows **Method** (Simandl today; Rabbath can plug in later) and **Positions** ½ through VII. Toggle them on to color the regions and show **1–2–4** fingering; **All** / **None** for a quick reset.
+- **View:** **Full** keeps the whole fingerboard visible (open through thumb register) and only highlights the positions you have on — so 1st position still shows frets 0–19, with I lit and the rest dim. **Focus** crops the chart to those positions.
+- **Board:** **Neck + thumb** splits at the octave harmonic (neck ½–VII, then thumb from the 8ve) so each chart is shorter. **One board** is a single nut-to-bridge diagram.
+- The header tray also has **Method** (Simandl today; Rabbath can plug in later) and **Positions** ½ through VII. Toggle them on to color the regions and show **1–2–4** fingering; **All** / **None** for a quick reset.
 - Chords and scales use the same map, so a progression in Song Builder still shows where the tones sit in the positions you have enabled. Click a dot to hear that note.
 
 ---

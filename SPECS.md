@@ -79,7 +79,7 @@ Important fields:
 - `padMaps` — `{ "4x4"|"2x4"|"2x6"|"2x8": number[] }` MIDI per pad
 - `tunings` — `{ [instrumentId]: number[] }` open MIDI low→high
 - `disabledStrings` — `{ [instrumentId]: boolean[] }` low→high; `true` forces mute in charts
-- `bassMethodPrefs` — `{ [instrumentId]: { methodId, byMethod: { [methodId]: positionId[] } } }` for upright bass
+- `bassMethodPrefs` — `{ [instrumentId]: { methodId, view, boardLayout, byMethod: { [methodId]: positionId[] } } }` for upright bass (`view`: `full`\|`focus`, default `full`; `boardLayout`: `split`\|`one`, default `split`)
 - Library: `kind` (`chord`\|`scale`), `category`, `formula`, `root`, `color`, `showAllRoots`
 - Songs: `songs[]`, `activeSongId`
 - Progressions UI: `progKey`, `progGenre`, `progSearch`
@@ -93,7 +93,7 @@ Important fields:
 
 1. User picks root / formula / instrument.
 2. **Pads:** `getActivePads(root, intervals, padMap, { fillBoard })` → pad indices → `buildGrid` / `makeCard`.
-3. **Strings:** `resolveStringChart` → `resolveChordShape` / `resolveScaleDiagram` / `resolveUprightDiagram` (with capo + live tuning, plus bass method/positions on upright) → `buildFretboard` / `buildUprightBoard` / `makeCard`.
+3. **Strings:** `resolveStringChart` → `resolveChordShape` / `resolveScaleDiagram` / `resolveUprightDiagram` (with capo + live tuning, plus bass method/positions/view on upright) → `buildFretboard` / `buildUprightChart` / `makeCard`.
 4. Playback: `playPads` / `playMidis` via Web Audio oscillators.
 
 Songs re-resolve bars when layout/instrument/tuning/capo/pad map changes (`reresolveSongsForLayout`).
@@ -236,34 +236,37 @@ Double bass is the same instrument id (`doublebass`) but a **different chart**, 
 - **Orientation:** standing bass. **Nut at top**, bridge toward the bottom. Strings **left → right = high → low** (G D A E in orchestra tuning) — the usual published Simandl chart / front view. Badge: `nut ↑ · high ←`.
 - **Scale length:** fret cell heights use 12-TET (`1 − 2^(−n/12)`). Lower positions have longer gaps; cells shrink toward the octave / thumb-position end of the neck.
 - **Chords and scales share the map.** Both light every matching tone on the neck (not a 4-fret guitar box). Progressions and Song Builder reuse this chart. Chord playback is the lowest instance of each pitch class in the selected positions; scales play sequentially through those pitches. Individual dots are clickable.
-- **Neck crop:** when any positions are enabled, the diagram crops to that range (½–I stays near the nut; VII sits up by the octave). With none enabled, the full neck (open through `neckFrets`, default 14) is shown without fingering numbers.
+- **View (default Full):** **Full** always draws open through `neckFrets` (19 on double bass: nut through thumb register). Selected positions stay highlighted; tones outside those positions are dimmed. **Focus** crops to the enabled positions (½–I stays near the nut; VII sits up by the octave). With none enabled, both views show the full neck without fingering numbers.
+- **Board (default Neck + thumb):** **Neck + thumb** (`split`) draws one chart per method `regions` entry (Simandl: neck 0–12 / ½–VII, thumb 12–19 from the octave harmonic). Shared fret 12 is the 8ve. Empty regions after a Focus crop are omitted (Focus + I shows neck only). **One board** is a single nut-to-bridge chart. Chart height is taller than guitar boxes so 12-TET spacing stays readable.
 
 #### Bass methods (`BASS_METHODS` in `lib/strings.js`)
 
 Methods are data overlays, not hardcoded renderers. Each method:
 
 ```
-{ id, label, fingering, positions: [{ id, label, firstFinger, color, fingers: { [fingerNumber]: fret } }] }
+{ id, label, fingering, regions: [{ id, label, startFret, endFret }], positions: [{ id, label, firstFinger, color, fingers: { [fingerNumber]: fret } }] }
 ```
 
 `fingers` is finger → semitones above the open string (same on every string in fourths). **Simandl** ships with 12 positions (½, I, II, II½, III, III½, IV, V, V½, VI, VI½, VII) using closed **1–2–4** (index, middle, pinky) spanning a whole tone.
 
-**Rabbath** is the next intended method: add another `BASS_METHODS` entry (6 positions, 1–2–3–4) and list its id on `doublebass.methods`. Do not special-case Simandl in `buildUprightBoard`.
+**Rabbath** is the next intended method: add another `BASS_METHODS` entry (6 positions, 1–2–3–4, its own `regions`) and list its id on `doublebass.methods`. Do not special-case Simandl in `buildUprightChart` / `buildUprightBoard`.
 
 UI (instrument tray, double bass only):
 
 - **Method** chips (today: Simandl).
-- **Positions** chips with **All** / **None**. Toggles persist per instrument + method in `isopadstudio.bassMethod.v1`.
+- **View** Full | Focus.
+- **Board** Neck + thumb | One board.
+- **Positions** chips with **All** / **None**. Method, positions, view, and board layout persist per instrument in `isopadstudio.bassMethod.v1` (positions still keyed per method).
 - Enabled positions draw colored bands and 1–2–4 (or whatever `fingers` maps) on the dots. Overlapping positions prefer showing **1st finger**.
 
-Helpers: `isUprightChart`, `listBassMethods`, `resolveUprightDiagram`, `neckRangeForPositions`, `fretCellRatio`. `resolveStringChart` in `app.js` routes upright instruments here for both chords and scales.
+Helpers: `isUprightChart`, `listBassMethods`, `resolveUprightDiagram`, `normalizeBassView`, `normalizeBassBoardLayout`, `methodRegions`, `clipFretRange`, `neckRangeForPositions`, `fretCellRatio`. `resolveStringChart` in `app.js` routes upright instruments here for both chords and scales.
 
 ### Chord / scale resolution
 
 - Guitar **standard tuning** uses curated open/barre shapes when available; otherwise (and for other tunings/instruments, or when strings are disabled) `searchVoicing`.
 - Instruments with `voicing: "open"` (guzheng, koto) light matching **open strings** only.
 - Chord dots may show **finger numbers** (1–4); open = ○, muted = × (muted rows slightly dimmed; disabled strings dimmer still).
-- Scales: box of open + ~4 frets; open scale tones as ○ at the nut; disabled strings omitted. **Exception:** upright bass uses the full (or position-cropped) neck via `resolveUprightDiagram`.
+- Scales: box of open + ~4 frets; open scale tones as ○ at the nut; disabled strings omitted. **Exception:** upright bass uses `resolveUprightDiagram` (Full neck, or Focus crop).
 - Scale dots on guitar-style / violin-family charts show the **pitch-class name** (`C`, `F#`, …) in every filled fret. Root dots keep the contrasting fill (white on the chart color) and ring; they are **not** labeled `R`.
 - `resolveScaleDiagram` dots include `{ string, fret, midi, note, isRoot }`.
 - Upright Simandl charts keep **1–2–4 fingering** on the dots (root ring + `R`) so positions stay readable; pitch class is in the tooltip / `note` field.
@@ -331,7 +334,7 @@ Legacy: songs with top-level `bars` migrate into a single section on load (`norm
 | `isopadstudio.padMaps.v1` | `{ "4x4", "2x4", "2x6", "2x8" }` MIDI maps |
 | `isopadstudio.tunings.v1` | Open tunings per string instrument |
 | `isopadstudio.disabledStrings.v1` | Per-instrument boolean[] (low→high); `true` = muted/off |
-| `isopadstudio.bassMethod.v1` | Upright bass method + enabled position ids per instrument |
+| `isopadstudio.bassMethod.v1` | Upright bass method, view, board layout, and enabled position ids per instrument |
 
 Legacy read fallbacks exist for older ChromaPad / mpc16chords keys (songs, active, layout, padMaps). Prefer writing only current keys.
 
@@ -394,8 +397,8 @@ New screenshots: prefer `screenshots/NN-kebab-name.png`, document them in [MANUA
 2. Pads vs strings are separate renderers (grid vs fretboard), not a fake “pads as strings” hack.
 3. Tuning storage = low→high; chart display = high-at-top **except** upright bass (`chart: "upright"`), which is nut-at-top and high-string-at-left.
 4. Capo UI only in string mode; tempo in Library only for scales.
-5. Header row 1 stays fixed; options live in the tray under it (no layout jump). Double bass may grow the tray with method/position chips.
-6. Pad maps and tunings persist per layout / instrument. Upright method + positions persist in `isopadstudio.bassMethod.v1`.
+5. Header row 1 stays fixed; options live in the tray under it (no layout jump). Double bass may grow the tray with method/view/board/position chips.
+6. Pad maps and tunings persist per layout / instrument. Upright method, view, board layout, and positions persist in `isopadstudio.bassMethod.v1`.
 7. Family toggle remembers last pad layout and last string instrument.
 8. Library selection feeds Pad Player / Strings reference panel.
 9. Upright bass methods stay data-driven (`BASS_METHODS`); do not fork the renderer for Rabbath.

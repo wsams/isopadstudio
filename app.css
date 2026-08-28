@@ -816,6 +816,22 @@ input {
   min-width: min(100%, 280px);
 }
 
+.upright-split {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 460px;
+}
+
+.fret-region-badge {
+  color: var(--c3);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
 .fretboard.upright {
   min-width: 240px;
   width: 100%;
@@ -827,16 +843,49 @@ input {
 }
 
 .preview-area .fretboard.upright {
-  --neck-h: 520px;
+  --neck-h: 780px;
   max-width: 460px;
 }
 
-.song-card .fretboard.upright,
+.preview-area .upright-split {
+  max-width: 460px;
+}
+
+.preview-area .upright-split .fretboard.upright.region-neck {
+  --neck-h: 620px;
+}
+
+.preview-area .upright-split .fretboard.upright.region-thumb {
+  --neck-h: 420px;
+}
+
 .grid-gallery .fretboard.upright,
+.song-sections .fretboard.upright,
 #player-chord-ref .fretboard.upright,
 .overlay-preview .fretboard.upright {
-  --neck-h: 300px;
+  --neck-h: 420px;
   max-width: 320px;
+}
+
+.grid-gallery .upright-split,
+.song-sections .upright-split,
+#player-chord-ref .upright-split,
+.overlay-preview .upright-split {
+  max-width: 320px;
+}
+
+.grid-gallery .upright-split .fretboard.upright.region-neck,
+.song-sections .upright-split .fretboard.upright.region-neck,
+#player-chord-ref .upright-split .fretboard.upright.region-neck,
+.overlay-preview .upright-split .fretboard.upright.region-neck {
+  --neck-h: 340px;
+}
+
+.grid-gallery .upright-split .fretboard.upright.region-thumb,
+.song-sections .upright-split .fretboard.upright.region-thumb,
+#player-chord-ref .upright-split .fretboard.upright.region-thumb,
+.overlay-preview .upright-split .fretboard.upright.region-thumb {
+  --neck-h: 240px;
 }
 
 .upright-frame {
@@ -890,6 +939,15 @@ input {
   margin-bottom: 2px;
 }
 
+.upright-harmonic-row {
+  display: grid;
+  grid-template-columns: 1.6rem repeat(var(--strings, 4), 1fr) 2.6rem;
+  align-items: stretch;
+  border-bottom: 5px double rgba(240, 192, 64, 0.75);
+  min-height: 28px;
+  margin-bottom: 2px;
+}
+
 .upright-nut-cell,
 .upright-cell {
   position: relative;
@@ -927,6 +985,10 @@ input {
   height: 16px;
 }
 
+.upright-open.dim {
+  opacity: 0.32;
+}
+
 .upright-mute {
   color: #c5ccd4;
   font-size: 0.8rem;
@@ -951,6 +1013,11 @@ input {
 
 .upright-fret-row.has-pos {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.upright-fret-row.octave {
+  border-bottom-width: 3px;
+  border-bottom-color: rgba(240, 192, 64, 0.55);
 }
 
 .upright-wire {

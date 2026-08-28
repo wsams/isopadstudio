@@ -126,7 +126,7 @@ describe("upright bass / Simandl", () => {
     assert.equal(S.isUprightChart("bass4"), false);
     assert.equal(S.isUprightChart("cello"), false);
     assert.equal(S.getInstrument("doublebass").chart, "upright");
-    assert.equal(S.getInstrument("doublebass").neckFrets, 14);
+    assert.equal(S.getInstrument("doublebass").neckFrets, 19);
   });
 
   it("registers Simandl as a pluggable method (Rabbath can share the same shape)", () => {
@@ -174,9 +174,65 @@ describe("upright bass / Simandl", () => {
     const seventh = S.neckRangeForPositions(method, ["VII"], 14);
     assert.equal(seventh.startFret, 11);
     assert.equal(seventh.endFret, 14);
-    const empty = S.neckRangeForPositions(method, [], 14);
+    const empty = S.neckRangeForPositions(method, [], 19);
     assert.equal(empty.startFret, 0);
-    assert.equal(empty.endFret, 14);
+    assert.equal(empty.endFret, 19);
+  });
+
+  it("defaults to a full-neck view so one position still shows the whole board", () => {
+    const diag = S.resolveUprightDiagram("doublebass", "C", [0, 4, 7], 0, null, {
+      methodId: "simandl",
+      activePositions: ["I"],
+    });
+    assert.equal(diag.view, "full");
+    assert.equal(diag.startFret, 0);
+    assert.equal(diag.endFret, 19);
+    const inI = diag.dots.filter((d) => d.inPosition && d.fret > 0);
+    const outside = diag.dots.filter((d) => !d.inPosition && d.fret > 0);
+    assert.ok(inI.length >= 1);
+    assert.ok(outside.length >= 1);
+    assert.ok(inI.every((d) => d.fret >= 2 && d.fret <= 4));
+  });
+
+  it("focus view crops to the enabled Simandl positions", () => {
+    const diag = S.resolveUprightDiagram("doublebass", "C", [0, 4, 7], 0, null, {
+      methodId: "simandl",
+      activePositions: ["I"],
+      view: "focus",
+    });
+    assert.equal(diag.view, "focus");
+    assert.equal(diag.startFret, 0);
+    assert.equal(diag.endFret, 4);
+  });
+
+  it("splits Simandl into neck (½–VII) and thumb (octave and above)", () => {
+    const regions = S.methodRegions(S.getBassMethod("simandl"), 19);
+    assert.deepEqual(
+      regions.map((r) => r.id),
+      ["neck", "thumb"]
+    );
+    assert.equal(regions[0].endFret, 12);
+    assert.equal(regions[1].startFret, 12);
+    const onlyI = { startFret: 0, endFret: 4 };
+    assert.ok(S.clipFretRange(regions[0], onlyI));
+    assert.equal(S.clipFretRange(regions[1], onlyI), null);
+    const diag = S.resolveUprightDiagram("doublebass", "C", [0, 4, 7], 0, null, {
+      methodId: "simandl",
+      activePositions: ["I"],
+    });
+    assert.deepEqual(
+      diag.regions.map((r) => r.id),
+      ["neck", "thumb"]
+    );
+  });
+
+  it("defaults unknown view to full and unknown board layout to split", () => {
+    assert.equal(S.normalizeBassView(), "full");
+    assert.equal(S.normalizeBassView("focus"), "focus");
+    assert.equal(S.normalizeBassView("nope"), "full");
+    assert.equal(S.normalizeBassBoardLayout(), "split");
+    assert.equal(S.normalizeBassBoardLayout("one"), "one");
+    assert.equal(S.normalizeBassBoardLayout("nope"), "split");
   });
 
   it("maps C major chord tones in Simandl I with 1–2–4 fingering", () => {
@@ -253,7 +309,7 @@ describe("upright bass / Simandl", () => {
       activePositions: [],
     });
     assert.equal(diag.startFret, 0);
-    assert.equal(diag.endFret, 14);
+    assert.equal(diag.endFret, 19);
     assert.ok(diag.dots.every((d) => d.finger == null));
     assert.ok(diag.positions.every((p) => p.enabled === false));
   });
