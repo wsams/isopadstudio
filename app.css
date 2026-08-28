@@ -246,11 +246,15 @@ input {
   border-radius: 2px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  transition: left 80ms linear, background 120ms ease;
+  transition: left 160ms ease-out, background 160ms ease, opacity 180ms ease;
 }
 
 .tuner-display[data-state="in"] .tuner-needle {
   background: var(--ok);
+}
+
+.tuner-display[data-state="idle"] .tuner-needle {
+  opacity: 0.4;
 }
 
 .tuner-meter-labels {

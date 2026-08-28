@@ -509,7 +509,7 @@
     lastFocus: null,
   };
 
-  function setTunerUi({ note, cents, hz, state, status }) {
+  function setTunerUi({ note, cents, needleCents, hz, state, status, resetNeedle }) {
     const noteEl = document.getElementById("tuner-note");
     const centsEl = document.getElementById("tuner-cents");
     const hzEl = document.getElementById("tuner-hz");
@@ -520,13 +520,16 @@
     if (centsEl) {
       if (cents == null) centsEl.textContent = state === "idle" ? "Listening…" : "—";
       else {
-        const sign = cents > 0 ? "+" : "";
-        centsEl.textContent = `${sign}${cents}¢`;
+        const rounded = Math.round(cents);
+        const sign = rounded > 0 ? "+" : "";
+        centsEl.textContent = `${sign}${rounded}¢`;
       }
     }
     if (hzEl) hzEl.textContent = hz != null ? `${hz.toFixed(1)} Hz` : "— Hz";
-    if (needle) {
-      const clamped = Math.max(-50, Math.min(50, cents ?? 0));
+    // Leave the needle where it was when the reading drops out (no snap-to-center).
+    const needlePos = resetNeedle ? 0 : (needleCents ?? cents);
+    if (needle && needlePos != null) {
+      const clamped = Math.max(-50, Math.min(50, needlePos));
       needle.style.setProperty("--cents", String(clamped));
     }
     if (display) display.dataset.state = state || "idle";
@@ -559,7 +562,7 @@
     stopTuner();
     const modal = document.getElementById("tuner-modal");
     if (modal) modal.hidden = true;
-    setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
+    setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "", resetNeedle: true });
     if (tunerSession.lastFocus && typeof tunerSession.lastFocus.focus === "function") {
       try {
         tunerSession.lastFocus.focus();
@@ -576,27 +579,23 @@
     const buf = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(buf);
     const rms = T.bufferRms(buf);
-    if (rms < 0.008) {
-      setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
-      tunerSession.smoother.reset();
+    const ctx = ensureAudio();
+    const rawHz = rms < 0.008 ? null : T.detectPitchYin(buf, ctx.sampleRate);
+    const hz = tunerSession.smoother.push(rawHz);
+    const info = hz != null ? T.hzToNote(hz) : null;
+    if (info) {
+      const abs = Math.abs(info.cents);
+      const state = abs <= 5 ? "in" : info.cents < 0 ? "flat" : "sharp";
+      setTunerUi({
+        note: info.label,
+        cents: info.cents,
+        needleCents: info.centsExact,
+        hz: info.hz,
+        state,
+        status: "",
+      });
     } else {
-      const ctx = ensureAudio();
-      const rawHz = T.detectPitchYin(buf, ctx.sampleRate);
-      const hz = rawHz != null ? tunerSession.smoother.push(rawHz) : null;
-      const info = hz != null ? T.hzToNote(hz) : null;
-      if (info) {
-        const abs = Math.abs(info.cents);
-        const state = abs <= 5 ? "in" : info.cents < 0 ? "flat" : "sharp";
-        setTunerUi({
-          note: info.label,
-          cents: info.cents,
-          hz: info.hz,
-          state,
-          status: "",
-        });
-      } else {
-        setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
-      }
+      setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
     }
     tunerSession.raf = requestAnimationFrame(tunerTick);
   }
@@ -608,7 +607,14 @@
 
     tunerSession.lastFocus = document.activeElement;
     modal.hidden = false;
-    setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "Requesting microphone…" });
+    setTunerUi({
+      note: "—",
+      cents: null,
+      hz: null,
+      state: "idle",
+      status: "Requesting microphone…",
+      resetNeedle: true,
+    });
     document.getElementById("tuner-close")?.focus();
 
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -640,7 +646,11 @@
       tunerSession.stream = stream;
       tunerSession.source = source;
       tunerSession.analyser = analyser;
-      tunerSession.smoother = T.createPitchSmoother();
+      tunerSession.smoother = T.createPitchSmoother({
+        alphaAttack: 0.12,
+        alphaDecay: 0.04,
+        holdMs: 400,
+      });
       tunerSession.open = true;
       setTunerUi({ note: "—", cents: null, hz: null, state: "idle", status: "" });
       tunerSession.raf = requestAnimationFrame(tunerTick);
