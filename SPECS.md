@@ -264,6 +264,9 @@ Helpers: `isUprightChart`, `listBassMethods`, `resolveUprightDiagram`, `neckRang
 - Instruments with `voicing: "open"` (guzheng, koto) light matching **open strings** only.
 - Chord dots may show **finger numbers** (1–4); open = ○, muted = × (muted rows slightly dimmed; disabled strings dimmer still).
 - Scales: box of open + ~4 frets; open scale tones as ○ at the nut; disabled strings omitted. **Exception:** upright bass uses the full (or position-cropped) neck via `resolveUprightDiagram`.
+- Scale dots on guitar-style / violin-family charts show the **pitch-class name** (`C`, `F#`, …) in every filled fret. Root dots keep the contrasting fill (white on the chart color) and ring; they are **not** labeled `R`.
+- `resolveScaleDiagram` dots include `{ string, fret, midi, note, isRoot }`.
+- Upright Simandl charts keep **1–2–4 fingering** on the dots (root ring + `R`) so positions stay readable; pitch class is in the tooltip / `note` field.
 - Capo: frets relative to capo; sounding pitch = open + capo + fret.
 
 ### Capo

@@ -1207,6 +1207,12 @@
     return `rgba(${r},${g},${b},${a})`;
   }
 
+  function scaleDotNote(hit) {
+    if (hit?.note) return hit.note;
+    if (!Number.isFinite(hit?.midi)) return "";
+    return NOTES[(((hit.midi % 12) + 12) % 12)] || "";
+  }
+
   function coveringPositionBands(diagram, fret) {
     return (diagram.positions || []).filter(
       (pos) => pos.enabled && fret >= pos.minFret && fret <= pos.maxFret
@@ -1486,14 +1492,16 @@
         if (isScale && diagram.dots) {
           const hit = diagram.dots.find((d) => d.string === s && d.fret === fretPos);
           if (hit) {
+            const noteLabel = scaleDotNote(hit);
             cell.appendChild(
               el("span", {
-                class: `fret-dot${hit.isRoot ? " root" : ""}`,
+                class: `fret-dot${hit.isRoot ? " root" : ""}${noteLabel.length > 1 ? " accidental" : ""}`,
+                title: hit.isRoot ? `${noteLabel} root` : noteLabel,
                 style: {
                   background: hit.isRoot ? "#fff" : color,
                   color: hit.isRoot ? "#111" : "#fff",
                 },
-              }, hit.isRoot ? "R" : "")
+              }, noteLabel)
             );
           }
         } else if (diagram.frets) {
