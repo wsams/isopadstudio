@@ -128,6 +128,26 @@ describe("resolveScaleDiagram", () => {
     assert.ok(diag.dots.some((d) => d.isRoot));
     // Open + frets 1–4 only (same frame as chords)
     assert.ok(diag.dots.every((d) => d.fret >= 0 && d.fret <= 4));
+    assert.ok(diag.dots.every((d) => typeof d.note === "string" && d.note.length > 0));
+    const roots = diag.dots.filter((d) => d.isRoot);
+    assert.ok(roots.length >= 1);
+    assert.ok(roots.every((d) => d.note === "C"));
+    const eDots = diag.dots.filter((d) => d.note === "E");
+    assert.ok(eDots.length >= 1);
+    assert.ok(eDots.every((d) => !d.isRoot));
+  });
+
+  it("labels violin Mixolydian dots with pitch-class names", () => {
+    const diag = S.resolveScaleDiagram("violin", "G", [0, 2, 4, 5, 7, 9, 10], 0);
+    assert.ok(diag.dots.every((d) => d.note));
+    assert.ok(diag.dots.some((d) => d.isRoot && d.note === "G"));
+    assert.ok(diag.dots.some((d) => d.note === "F" && !d.isRoot));
+  });
+
+  it("labels F# blues roots with the sharp name", () => {
+    const diag = S.resolveScaleDiagram("guitar6", "F#", [0, 3, 5, 6, 7, 10], 0);
+    assert.ok(diag.dots.some((d) => d.isRoot && d.note === "F#"));
+    assert.ok(diag.dots.some((d) => d.note === "A" && !d.isRoot));
   });
 
   it("scale capo shifts sounding pitches", () => {

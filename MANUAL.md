@@ -94,13 +94,13 @@ On a small map, some scale degrees may be missing (here A and B). Lit pads are i
 
 ![A Blues on guitar](screenshots/21-library-guitar-blues.png)
 
-Category **Pentatonic & blues** · **Blues Scale** · root **A** · standard **EADGBE**. Scale tones as dots, **R** = root. Same Library controls as Mixolydian; color tints the chart.
+Category **Pentatonic & blues** · **Blues Scale** · root **A** · standard **EADGBE**. Scale tones as dots labeled with the note name; the root stays a contrasting color. Same Library controls as Mixolydian; color tints the chart.
 
 ### Violin Mixolydian
 
 ![G Mixolydian on violin](screenshots/08-library-violin-scale.png)
 
-**Violin** uses a fingerboard-style chart (GDAE, high string at top). Same Library controls.
+**Violin** uses a fingerboard-style chart (GDAE, high string at top). Same Library controls — each filled dot shows the note, with the root in a contrasting color.
 
 ---
 
