@@ -120,6 +120,152 @@ describe("resolveChordShape other instruments", () => {
   });
 });
 
+describe("upright bass / Simandl", () => {
+  it("marks double bass as an upright chart and leaves electric bass horizontal", () => {
+    assert.equal(S.isUprightChart("doublebass"), true);
+    assert.equal(S.isUprightChart("bass4"), false);
+    assert.equal(S.isUprightChart("cello"), false);
+    assert.equal(S.getInstrument("doublebass").chart, "upright");
+    assert.equal(S.getInstrument("doublebass").neckFrets, 14);
+  });
+
+  it("registers Simandl as a pluggable method (Rabbath can share the same shape)", () => {
+    const methods = S.listBassMethods("doublebass");
+    assert.equal(methods.length, 1);
+    assert.equal(methods[0].id, "simandl");
+    assert.equal(S.defaultBassMethodId("doublebass"), "simandl");
+    const simandl = S.getBassMethod("simandl");
+    assert.equal(simandl.fingering, "1-2-4");
+    assert.equal(simandl.positions.length, 12);
+    simandl.positions.forEach((pos) => {
+      assert.equal(pos.fingers[2], pos.fingers[1] + 1);
+      assert.equal(pos.fingers[4], pos.fingers[1] + 2);
+    });
+  });
+
+  it("places Simandl I 1st finger a whole step above the open string", () => {
+    const I = S.getBassMethod("simandl").positions.find((p) => p.id === "I");
+    assert.equal(I.fingers[1], 2);
+    assert.equal(I.fingers[2], 3);
+    assert.equal(I.fingers[4], 4);
+    const half = S.getBassMethod("simandl").positions.find((p) => p.id === "half");
+    assert.equal(half.fingers[1], 1);
+    const vii = S.getBassMethod("simandl").positions.find((p) => p.id === "VII");
+    assert.equal(vii.fingers[1], 12);
+  });
+
+  it("uses shrinking 12-TET fret spacing toward the bridge", () => {
+    const nutTo12 = S.fretDistanceFromNut(12);
+    assert.ok(Math.abs(nutTo12 - 0.5) < 1e-10);
+    assert.ok(S.fretCellRatio(1) > S.fretCellRatio(7));
+    assert.ok(S.fretCellRatio(7) > S.fretCellRatio(12));
+    const ratios = S.fretCellRatios(1, 12);
+    assert.equal(ratios.length, 12);
+    for (let i = 1; i < ratios.length; i++) {
+      assert.ok(ratios[i] < ratios[i - 1], `fret ${i + 1} should be shorter than fret ${i}`);
+    }
+  });
+
+  it("crops the neck to enabled Simandl positions", () => {
+    const method = S.getBassMethod("simandl");
+    const firsts = S.neckRangeForPositions(method, ["half", "I"], 14);
+    assert.equal(firsts.startFret, 0);
+    assert.equal(firsts.endFret, 4);
+    const seventh = S.neckRangeForPositions(method, ["VII"], 14);
+    assert.equal(seventh.startFret, 11);
+    assert.equal(seventh.endFret, 14);
+    const empty = S.neckRangeForPositions(method, [], 14);
+    assert.equal(empty.startFret, 0);
+    assert.equal(empty.endFret, 14);
+  });
+
+  it("maps C major chord tones in Simandl I with 1–2–4 fingering", () => {
+    const diag = S.resolveUprightDiagram("doublebass", "C", [0, 4, 7], 0, null, {
+      methodId: "simandl",
+      activePositions: ["I"],
+    });
+    assert.equal(diag.chart, "upright");
+    assert.equal(diag.methodId, "simandl");
+    assert.deepEqual(diag.missing, []);
+    // A string (index 1): I position 2nd finger = C
+    const cOnA = diag.dots.find((d) => d.string === 1 && d.fret === 3);
+    assert.ok(cOnA);
+    assert.equal(cOnA.isRoot, true);
+    assert.equal(cOnA.finger, 2);
+    assert.equal(cOnA.inPosition, true);
+    assert.equal(cOnA.note, "C");
+    // D string (index 2): I 1st finger = E
+    const eOnD = diag.dots.find((d) => d.string === 2 && d.fret === 2);
+    assert.ok(eOnD);
+    assert.equal(eOnD.finger, 1);
+    // G string open G (chord fifth)
+    const openG = diag.dots.find((d) => d.string === 3 && d.fret === 0);
+    assert.ok(openG);
+    assert.equal(openG.inPosition, true);
+    // III-position C on the G string is outside I
+    const cOnG = diag.dots.find((d) => d.string === 3 && d.fret === 5);
+    assert.ok(!cOnG || !cOnG.inPosition);
+    const pcs = new Set(diag.midis.map(S.midiPitchClass));
+    assert.ok(pcs.has(S.noteToPc("C")));
+    assert.ok(pcs.has(S.noteToPc("E")));
+    assert.ok(pcs.has(S.noteToPc("G")));
+    assert.equal(diag.midis.length, pcs.size);
+  });
+
+  it("keeps scale tones on the upright neck so progressions can overlay a scale", () => {
+    const diag = S.resolveUprightDiagram(
+      "doublebass",
+      "G",
+      [0, 2, 4, 5, 7, 9, 11],
+      0,
+      null,
+      { methodId: "simandl", activePositions: ["half", "I", "II", "III"], isScale: true }
+    );
+    assert.ok(diag.dots.length >= 8);
+    assert.ok(diag.dots.some((d) => d.isRoot && d.inPosition));
+    assert.ok(diag.pcNames.includes("G"));
+    assert.ok(diag.pcNames.includes("D"));
+    assert.equal(diag.isScale, true);
+    // Isolated I vs full low positions — fewer emphasized notes when one position is on
+    const onlyI = S.resolveUprightDiagram("doublebass", "G", [0, 2, 4, 5, 7, 9, 11], 0, null, {
+      methodId: "simandl",
+      activePositions: ["I"],
+    });
+    const inI = onlyI.dots.filter((d) => d.inPosition && d.fret > 0).length;
+    const inLow = diag.dots.filter((d) => d.inPosition && d.fret > 0).length;
+    assert.ok(inI < inLow);
+  });
+
+  it("omits disabled strings from the upright chart", () => {
+    const disabled = [true, false, false, false];
+    const diag = S.resolveUprightDiagram("doublebass", "C", [0, 4, 7], 0, null, {
+      methodId: "simandl",
+      activePositions: ["I"],
+      disabledStrings: disabled,
+    });
+    assert.ok(diag.dots.every((d) => d.string !== 0));
+    assert.deepEqual(diag.disabledStrings, disabled);
+  });
+
+  it("allows turning every Simandl position off (full neck, no finger numbers)", () => {
+    const diag = S.resolveUprightDiagram("doublebass", "C", [0, 4, 7], 0, null, {
+      methodId: "simandl",
+      activePositions: [],
+    });
+    assert.equal(diag.startFret, 0);
+    assert.equal(diag.endFret, 14);
+    assert.ok(diag.dots.every((d) => d.finger == null));
+    assert.ok(diag.positions.every((p) => p.enabled === false));
+  });
+
+  it("includes orchestra and solo tunings", () => {
+    assert.equal(S.tuningSummary(S.defaultTuning("doublebass")), "EADG");
+    const solo = S.applyPreset("doublebass", "solo");
+    assert.equal(S.tuningSummary(solo), "F#BEA");
+    assert.equal(S.matchPresetId("doublebass", solo), "solo");
+  });
+});
+
 describe("resolveScaleDiagram", () => {
   it("places C major scale dots on guitar", () => {
     const diag = S.resolveScaleDiagram("guitar6", "C", [0, 2, 4, 5, 7, 9, 11], 0);

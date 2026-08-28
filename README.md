@@ -32,7 +32,7 @@ Source and issues: [github.com/wsams/isopadstudio](https://github.com/wsams/isop
 | **2×4 (8 pads)** | Akai LPD8, single nanoPAD bank |
 | **2×6 (12 pads)** | Wide 2-row pad controllers |
 | **2×8 (dual 2×4)** | Korg nanoPAD2 — two 2×4 banks side by side (same 16 notes as 4×4) |
-| **Strings** | Guitar, bass, uke, mando, banjo, violin family, plus Chinese (pipa, erhu, zhongruan, guzheng), Japanese (shamisen, koto), and Middle Eastern (oud, bağlama, setar, tar) |
+| **Strings** | Guitar, bass, uke, mando, banjo, violin family, plus Chinese (pipa, erhu, zhongruan, guzheng), Japanese (shamisen, koto), and Middle Eastern (oud, bağlama, setar, tar). Double bass uses a vertical Simandl fingerboard. |
 
 Pick your instrument in the header. Pads light up on a grid; strings show fretboard / fingerboard charts. Map your own pad notes or open-string tuning. Songs can use a **chord capo** and a separate **scale capo**.
 
@@ -54,7 +54,7 @@ Same scale on **Pads · 4×4**, then **Strings · Guitar**, plus the **Tuner** p
 
 - **Tuner** — free chromatic mic tuner in the header (A4 = 440 Hz); no ads, mic stays in the browser
 - **Pads editor** — assign note + octave to every pad (defaults: chromatic from **C3**; piano middle C is **C4**)
-- **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning; disable strings for treble-only voicings or a broken string
+- **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning; disable strings for treble-only voicings or a broken string. **Double bass** is a vertical Simandl chart (toggle positions ½–VII; Solo F♯BEA preset)
 - **Capo** — song-level chord capo; separate scale capo for leads / overlay
 - **Chord library** — triads through jazz extensions; pad lights or fret diagrams
 - **Scales & modes** — lights every in-scale pad, or a scale box on the fingerboard with note names in each dot

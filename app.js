@@ -179,6 +179,7 @@
   const PADMAP_KEY = "isopadstudio.padMaps.v1";
   const TUNING_KEY = "isopadstudio.tunings.v1";
   const DISABLED_STRINGS_KEY = "isopadstudio.disabledStrings.v1";
+  const BASS_METHOD_KEY = "isopadstudio.bassMethod.v1";
   const LEGACY_KEYS = {
     songs: ["isopadstudio.songs.v1", "chromapad.songs.v1", "mpc16chords.songs.v1"],
     active: ["chromapad.activeSongId", "mpc16chords.activeSongId"],
@@ -323,6 +324,76 @@
       });
       return out;
     }
+  }
+
+  function loadBassMethodPrefs() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(BASS_METHOD_KEY) || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function persistBassMethodPrefs() {
+    try {
+      localStorage.setItem(BASS_METHOD_KEY, JSON.stringify(state.bassMethodPrefs));
+    } catch {
+      /* ignore quota */
+    }
+  }
+
+  function bassPrefsFor(instrumentId) {
+    const inst = S.getInstrument(instrumentId);
+    if (!inst || inst.chart !== "upright") return null;
+    if (!state.bassMethodPrefs[instrumentId] || typeof state.bassMethodPrefs[instrumentId] !== "object") {
+      state.bassMethodPrefs[instrumentId] = {};
+    }
+    const pref = state.bassMethodPrefs[instrumentId];
+    const methodId = S.getBassMethod(pref.methodId) ? pref.methodId : S.defaultBassMethodId(instrumentId);
+    pref.methodId = methodId;
+    if (!pref.byMethod || typeof pref.byMethod !== "object") pref.byMethod = {};
+    pref.byMethod[methodId] = S.normalizeBassPositionIds(methodId, pref.byMethod[methodId]);
+    return pref;
+  }
+
+  function getBassMethodId() {
+    return bassPrefsFor(state.instrument)?.methodId || null;
+  }
+
+  function getActiveBassPositions() {
+    const pref = bassPrefsFor(state.instrument);
+    if (!pref) return [];
+    return (pref.byMethod[pref.methodId] || []).slice();
+  }
+
+  function setBassMethodId(methodId) {
+    const pref = bassPrefsFor(state.instrument);
+    if (!pref || !S.getBassMethod(methodId)) return;
+    pref.methodId = methodId;
+    if (!Array.isArray(pref.byMethod[methodId])) {
+      pref.byMethod[methodId] = S.defaultBassPositionIds(methodId);
+    } else {
+      pref.byMethod[methodId] = S.normalizeBassPositionIds(methodId, pref.byMethod[methodId]);
+    }
+    persistBassMethodPrefs();
+    refreshAfterPadMapChange();
+  }
+
+  function setBassPositions(ids) {
+    const pref = bassPrefsFor(state.instrument);
+    if (!pref) return;
+    pref.byMethod[pref.methodId] = S.normalizeBassPositionIds(pref.methodId, ids);
+    persistBassMethodPrefs();
+    refreshAfterPadMapChange();
+  }
+
+  function toggleBassPosition(positionId) {
+    const current = getActiveBassPositions();
+    const next = current.includes(positionId)
+      ? current.filter((id) => id !== positionId)
+      : current.concat(positionId);
+    setBassPositions(next);
   }
 
   function persistPadMaps() {
@@ -917,6 +988,7 @@
     padMaps: loadPadMaps(),
     tunings: loadTunings(),
     disabledStrings: loadDisabledStrings(),
+    bassMethodPrefs: loadBassMethodPrefs(),
     kind: "chord",
     category: "All",
     formula: "Major 7",
@@ -1141,7 +1213,207 @@
     return NOTES[(((hit.midi % 12) + 12) % 12)] || "";
   }
 
-  function buildFretboard(diagram, { color = "#ff4d6d", isScale = false } = {}) {
+  function coveringPositionBands(diagram, fret) {
+    return (diagram.positions || []).filter(
+      (pos) => pos.enabled && fret >= pos.minFret && fret <= pos.maxFret
+    );
+  }
+
+  function uprightBandStyle(bands) {
+    if (!bands.length) return {};
+    if (bands.length === 1) {
+      return { background: hexToRgba(bands[0].color, 0.2) };
+    }
+    const stops = bands
+      .map((pos, i) => {
+        const a = (i / bands.length) * 100;
+        const b = ((i + 1) / bands.length) * 100;
+        return `${hexToRgba(pos.color, 0.22)} ${a}% ${b}%`;
+      })
+      .join(", ");
+    return { background: `linear-gradient(90deg, ${stops})` };
+  }
+
+  function buildUprightBoard(diagram, { color = "#ff4d6d", isScale = false, onNote = null } = {}) {
+    const inst = currentStringInstrument() || S.getInstrument(diagram.instrumentId);
+    if (!inst) return el("div", { class: "fretboard upright" });
+    const stringCount = inst.strings;
+    const startFret = diagram.startFret ?? 0;
+    const endFret = diagram.endFret ?? inst.neckFrets ?? 12;
+    const firstCell = startFret === 0 ? 1 : startFret;
+    const ratios = diagram.fretRatios?.length
+      ? diagram.fretRatios
+      : S.fretCellRatios(firstCell, endFret);
+    const tuning = getTuning();
+    const labels = S.tuningNoteNames(tuning.length === stringCount ? tuning : inst.openMidi);
+    const tuningLabel = S.tuningSummary(tuning.length === stringCount ? tuning : inst.openMidi);
+    const disabled = Array.isArray(diagram.disabledStrings)
+      ? diagram.disabledStrings
+      : getDisabledStrings();
+    const displayStrings = [];
+    for (let s = stringCount - 1; s >= 0; s--) displayStrings.push(s);
+
+    const board = el("div", {
+      class: `fretboard upright ${isScale ? "scale" : "chord"}`,
+      title: tuningLabel
+        ? `Open tuning ${tuningLabel} · standing bass, nut at top, high string at left`
+        : "Standing bass · nut at top",
+    });
+
+    const meta = el("div", { class: "fret-meta" });
+    if (tuningLabel) {
+      meta.appendChild(el("span", { class: "fret-tuning-badge" }, tuningLabel));
+      meta.appendChild(el("span", { class: "fret-orient-label" }, "nut ↑ · high ←"));
+    }
+    if (diagram.methodLabel) {
+      meta.appendChild(
+        el(
+          "span",
+          { class: "fret-method-badge", title: diagram.fingering ? `${diagram.fingering} fingering` : "" },
+          diagram.methodLabel
+        )
+      );
+    }
+    if ((diagram.capo || 0) > 0) meta.appendChild(el("span", { class: "fret-capo-badge" }, `Capo ${diagram.capo}`));
+    if (startFret > 0) meta.appendChild(el("span", { class: "fret-base-label" }, `${startFret}fr`));
+    if (S.hasDisabledStrings(disabled)) {
+      const enabled = S.enabledStringCount(disabled);
+      meta.appendChild(el("span", { class: "fret-stringset-badge" }, `${enabled} strings`));
+    }
+    if (meta.childNodes.length) board.appendChild(meta);
+
+    const frame = el("div", {
+      class: "upright-frame",
+      style: { "--strings": String(stringCount) },
+    });
+
+    const head = el("div", { class: "upright-head" });
+    head.appendChild(el("span", { class: "upright-gutter" }, ""));
+    displayStrings.forEach((s) => {
+      head.appendChild(
+        el(
+          "span",
+          { class: `upright-string-name${disabled[s] ? " disabled" : ""}` },
+          labels[s] || ""
+        )
+      );
+    });
+    head.appendChild(el("span", { class: "upright-pos-gutter" }, "pos"));
+    frame.appendChild(head);
+
+    if (startFret === 0) {
+      const nut = el("div", { class: "upright-nut-row" });
+      nut.appendChild(el("span", { class: "upright-gutter upright-fret-num" }, "0"));
+      displayStrings.forEach((s) => {
+        const stringOff = Boolean(disabled[s]);
+        const openHit = (diagram.dots || []).find((d) => d.string === s && d.fret === 0);
+        const cell = el("div", {
+          class: `upright-nut-cell${stringOff ? " disabled" : ""}${openHit ? " has-note" : ""}`,
+        });
+        if (stringOff) cell.appendChild(el("span", { class: "upright-mute" }, "×"));
+        else if (openHit) {
+          const nutDot = el(
+            "button",
+            {
+              type: "button",
+              class: `upright-open${openHit.isRoot ? " root" : ""}`,
+              title: `${midiToLabel(openHit.midi)} · open`,
+              style: openHit.isRoot ? {} : { color },
+            },
+            openHit.isRoot ? "R" : "○"
+          );
+          if (onNote) {
+            nutDot.addEventListener("click", (e) => {
+              e.stopPropagation();
+              onNote(openHit.midi);
+            });
+          }
+          cell.appendChild(nutDot);
+        }
+        nut.appendChild(cell);
+      });
+      nut.appendChild(el("span", { class: "upright-pos-gutter" }, ""));
+      frame.appendChild(nut);
+    }
+
+    const neck = el("div", { class: "upright-neck" });
+    let ratioIndex = 0;
+    for (let fret = firstCell; fret <= endFret; fret++) {
+      const ratio = ratios[ratioIndex++] || S.fretCellRatio(fret);
+      const bands = coveringPositionBands(diagram, fret);
+      const row = el("div", {
+        class: `upright-fret-row${bands.length ? " has-pos" : ""}`,
+        style: { "--ratio": String(ratio * 1000), ...uprightBandStyle(bands) },
+      });
+      row.appendChild(el("span", { class: "upright-gutter upright-fret-num" }, String(fret)));
+      displayStrings.forEach((s) => {
+        const stringOff = Boolean(disabled[s]);
+        const hit = (diagram.dots || []).find((d) => d.string === s && d.fret === fret);
+        const cell = el("div", {
+          class: `upright-cell${stringOff ? " disabled" : ""}${hit ? " has-note" : ""}`,
+        });
+        cell.appendChild(el("span", { class: "upright-wire", "aria-hidden": "true" }));
+        if (hit) {
+          const dim = !hit.inPosition;
+          const posHint = (hit.positions || [])
+            .map((p) => `${p.positionLabel}·${p.finger}`)
+            .join(" ");
+          const label = hit.isRoot ? "R" : hit.finger != null ? String(hit.finger) : "";
+          const dot = el(
+            "button",
+            {
+              type: "button",
+              class: `fret-dot upright-dot${hit.isRoot ? " root" : ""}${dim ? " dim" : ""}`,
+              style: {
+                background: hit.isRoot ? "#fff" : color,
+                color: hit.isRoot ? "#111" : "#fff",
+              },
+              title: [midiToLabel(hit.midi), posHint, dim ? "outside selected positions" : ""]
+                .filter(Boolean)
+                .join(" · "),
+            },
+            label
+          );
+          if (onNote) {
+            dot.addEventListener("click", (e) => {
+              e.stopPropagation();
+              onNote(hit.midi);
+            });
+          }
+          cell.appendChild(dot);
+        }
+        row.appendChild(cell);
+      });
+      const posHere = (diagram.positions || []).filter(
+        (pos) => pos.enabled && pos.firstFinger === fret
+      );
+      const posCell = el("span", { class: "upright-pos-gutter upright-pos-labels" });
+      posHere.forEach((pos) => {
+        posCell.appendChild(
+          el(
+            "span",
+            {
+              class: "upright-pos-pill",
+              style: { background: hexToRgba(pos.color, 0.35), borderColor: pos.color },
+              title: `${diagram.methodLabel || "Position"} ${pos.label}`,
+            },
+            pos.label
+          )
+        );
+      });
+      row.appendChild(posCell);
+      neck.appendChild(row);
+    }
+    frame.appendChild(neck);
+    frame.appendChild(el("div", { class: "upright-bridge", "aria-hidden": "true" }));
+    board.appendChild(frame);
+    return board;
+  }
+
+  function buildFretboard(diagram, { color = "#ff4d6d", isScale = false, onNote = null } = {}) {
+    if (diagram?.chart === "upright") {
+      return buildUprightBoard(diagram, { color, isScale, onNote });
+    }
     const inst = currentStringInstrument() || S.getInstrument(diagram.instrumentId);
     if (!inst) return el("div", { class: "fretboard" });
     const style = inst.style || "fretted";
@@ -1257,12 +1529,21 @@
     const id = state.instrument;
     const tuning = getTuning();
     const disabledStrings = getDisabledStrings();
+    const capoFret = capo != null ? capo : isScale ? getScaleCapo() : getChordCapo();
+    if (S.isUprightChart(id)) {
+      return S.resolveUprightDiagram(id, root, intervals, capoFret, tuning, {
+        disabledStrings,
+        isScale,
+        methodId: getBassMethodId(),
+        activePositions: getActiveBassPositions(),
+      });
+    }
     if (isScale) {
-      return S.resolveScaleDiagram(id, root, intervals, capo != null ? capo : getScaleCapo(), tuning, {
+      return S.resolveScaleDiagram(id, root, intervals, capoFret, tuning, {
         disabledStrings,
       });
     }
-    return S.resolveChordShape(id, root, intervals, capo != null ? capo : getChordCapo(), tuning, {
+    return S.resolveChordShape(id, root, intervals, capoFret, tuning, {
       disabledStrings,
     });
   }
@@ -1281,12 +1562,16 @@
     diagram = null,
   }) {
     const useStrings = Boolean(diagram && (diagram.frets || diagram.dots));
+    const upright = Boolean(diagram && diagram.chart === "upright");
     let notes = "";
     let playPayload;
 
     if (useStrings) {
       const playMidisList = midis?.length ? midis : diagram.midis || [];
-      notes = playMidisList.map((m) => midiToLabel(m)).join(" · ");
+      notes =
+        upright && diagram.pcNames?.length
+          ? diagram.pcNames.join(" · ")
+          : playMidisList.map((m) => midiToLabel(m)).join(" · ");
       playPayload = playMidisList;
     } else {
       const playPadsList = isScale ? pads : primaryPads.length ? primaryPads : pads;
@@ -1295,7 +1580,7 @@
     }
 
     const card = el("div", {
-      class: "card clickable song-card",
+      class: `card clickable song-card${upright ? " upright-card" : ""}`,
       onClick: (e) => {
         if (e.target.closest("button")) return;
         if (useStrings) onPlay(playPayload, { midis: true });
@@ -1310,7 +1595,15 @@
       ])
     );
     if (useStrings) {
-      card.appendChild(buildFretboard(diagram, { color, isScale: !!isScale }));
+      card.appendChild(
+        buildFretboard(diagram, {
+          color,
+          isScale: !!isScale,
+          onNote: upright
+            ? (midi) => playTone(0, ensureAudio().currentTime, 0.45, { midi, peak: 0.2 })
+            : null,
+        })
+      );
     } else {
       card.appendChild(buildGrid(pads, color, { rootIndex, primaryPads: isScale ? [] : primaryPads }));
     }
@@ -1450,6 +1743,16 @@
         hint.textContent = isScale
           ? `Scale tones for ${tuningName}${setLabel ? ` · ${setLabel}` : ""} (capo applies to scales separately from chords in Song Builder). Click to hear ascending. Open the Strings tab to practice open strings alongside this selection.`
           : `Chord chart for ${tuningName}${setLabel ? ` · ${setLabel}` : ""}. Capo frets are relative to the capo. Click to hear the voicing. Open the Strings tab to see this selection while you pluck open strings.`;
+        if (S.isUprightChart(state.instrument)) {
+          const method = S.getBassMethod(getBassMethodId());
+          const active = getActiveBassPositions();
+          const posNote = active.length
+            ? `${active.length} ${method?.label || "method"} position${active.length === 1 ? "" : "s"} shown — toggle them in the tray.`
+            : `${method?.label || "Method"} positions are hidden. Toggle them in the tray to highlight 1–2–4 fingering.`;
+          hint.textContent = isScale
+            ? `Upright ${tuningName} · ${posNote} Click the chart to hear the scale in the selected positions, or tap a note.`
+            : `Upright ${tuningName} · chord tones on the standing bass. ${posNote} Click to hear the tones, or tap a note.`;
+        }
       }
     } else {
       const { pads, primaryPads, missing, rootIndex } = getActivePads(state.root, entry.intervals, {
@@ -2108,6 +2411,93 @@
     row.dataset.filled = "1";
   }
 
+  function renderBassMethodBar() {
+    const bar = document.getElementById("bass-method-bar");
+    if (!bar) return;
+    const inst = isStringMode() ? currentStringInstrument() : null;
+    const methods = inst ? S.listBassMethods(inst.id) : [];
+    if (!methods.length) {
+      bar.hidden = true;
+      bar.innerHTML = "";
+      return;
+    }
+    bar.hidden = false;
+    bar.innerHTML = "";
+    const methodId = getBassMethodId();
+    const method = S.getBassMethod(methodId) || methods[0];
+    const active = new Set(getActiveBassPositions());
+
+    bar.appendChild(el("span", { class: "tray-label" }, "Method"));
+    const methodRow = el("div", { class: "bass-method-chips", role: "group", "aria-label": "Bass method" });
+    methods.forEach((m) => {
+      methodRow.appendChild(
+        el(
+          "button",
+          {
+            type: "button",
+            class: `string-chip bass-method-chip${m.id === method.id ? " active" : ""}`,
+            title: m.detail || m.label,
+            "aria-pressed": m.id === method.id ? "true" : "false",
+            onClick: () => setBassMethodId(m.id),
+          },
+          m.label
+        )
+      );
+    });
+    bar.appendChild(methodRow);
+
+    bar.appendChild(el("span", { class: "tray-label" }, "Positions"));
+    const posRow = el("div", { class: "bass-pos-chips", role: "group", "aria-label": "Bass positions" });
+    posRow.appendChild(
+      el(
+        "button",
+        {
+          type: "button",
+          class: "bass-pos-chip bass-pos-all",
+          title: "Show every position",
+          onClick: () => setBassPositions(S.defaultBassPositionIds(method.id)),
+        },
+        "All"
+      )
+    );
+    posRow.appendChild(
+      el(
+        "button",
+        {
+          type: "button",
+          class: "bass-pos-chip bass-pos-none",
+          title: "Hide position bands",
+          onClick: () => setBassPositions([]),
+        },
+        "None"
+      )
+    );
+    method.positions.forEach((pos) => {
+      const on = active.has(pos.id);
+      posRow.appendChild(
+        el(
+          "button",
+          {
+            type: "button",
+            class: `bass-pos-chip${on ? " active" : ""}`,
+            style: on
+              ? {
+                  background: hexToRgba(pos.color, 0.28),
+                  borderColor: pos.color,
+                  color: "#fff",
+                }
+              : {},
+            title: `${method.label} ${pos.label} · 1st finger ${pos.firstFinger} semitone${pos.firstFinger === 1 ? "" : "s"} above open`,
+            "aria-pressed": on ? "true" : "false",
+            onClick: () => toggleBassPosition(pos.id),
+          },
+          pos.label
+        )
+      );
+    });
+    bar.appendChild(posRow);
+  }
+
   function setInstrumentFamily(family) {
     if (family === "strings") {
       setInstrument(state.lastStringInstrument || "guitar6");
@@ -2120,6 +2510,7 @@
     const switcher = document.getElementById("instrument-switch");
     const family = isStringMode() ? "strings" : "pads";
     fillStringChips();
+    renderBassMethodBar();
 
     if (switcher) switcher.dataset.family = family;
 
@@ -2167,6 +2558,9 @@
       const footer = document.querySelector(".footer-status");
       if (footer) {
         footer.textContent = `${inst.label} · capo & tunings editable · songs save in localStorage · serve over HTTP.`;
+        if (S.isUprightChart(inst.id)) {
+          footer.textContent = `${inst.label} · Simandl positions toggle in the tray · vertical fingerboard · songs save in localStorage.`;
+        }
       }
     } else {
       const layout = currentLayout();
