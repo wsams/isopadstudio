@@ -1481,12 +1481,23 @@
     return board;
   }
 
+  function uprightRegionsFor(diagram) {
+    if (Array.isArray(diagram?.regions) && diagram.regions.length) return diagram.regions;
+    return S.methodRegions(S.getBassMethod(diagram?.methodId), diagram?.neckFrets);
+  }
+
   function buildUprightChart(diagram, { color = "#ff4d6d", isScale = false, onNote = null } = {}) {
     const layout = getBassBoardLayout();
-    const regions = layout === "split" ? diagram.regions || [] : [];
+    const regions = layout === "split" ? uprightRegionsFor(diagram) : [];
     if (regions.length > 1) {
-      const wrap = el("div", { class: "upright-split" });
-      const crop = { startFret: diagram.startFret ?? 0, endFret: diagram.endFret ?? 12 };
+      const wrap = el("div", {
+        class: "upright-split",
+        "data-board-layout": "split",
+      });
+      const crop = {
+        startFret: diagram.startFret ?? 0,
+        endFret: diagram.endFret ?? diagram.neckFrets ?? 19,
+      };
       let drawn = 0;
       regions.forEach((region) => {
         const slice = S.clipFretRange(region, crop);
@@ -1496,9 +1507,12 @@
         );
         drawn += 1;
       });
-      if (drawn) return wrap;
+      if (drawn > 1) return wrap;
+      if (drawn === 1) return wrap.firstChild;
     }
-    return buildUprightBoard(diagram, { color, isScale, onNote });
+    const board = buildUprightBoard(diagram, { color, isScale, onNote });
+    board.dataset.boardLayout = "one";
+    return board;
   }
 
   function buildFretboard(diagram, { color = "#ff4d6d", isScale = false, onNote = null } = {}) {
