@@ -54,7 +54,7 @@ Same scale on **Pads · 4×4**, then **Strings · Guitar**, plus the **Tuner** p
 
 - **Tuner** — free chromatic mic tuner in the header (A4 = 440 Hz); no ads, mic stays in the browser
 - **Pads editor** — assign note + octave to every pad (defaults: chromatic from **C3**; piano middle C is **C4**)
-- **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning; disable strings for treble-only voicings or a broken string. **Double bass** is a vertical Simandl chart (toggle positions ½–VII; Solo F♯BEA preset)
+- **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning; disable strings for treble-only voicings or a broken string. **Double bass** is a vertical Simandl chart (Full or Focus view; Neck + thumb or one board; positions ½–VII; Solo F♯BEA preset)
 - **Capo** — song-level chord capo; separate scale capo for leads / overlay
 - **Chord library** — triads through jazz extensions; pad lights or fret diagrams
 - **Scales & modes** — lights every in-scale pad, or a scale box on the fingerboard with note names in each dot
