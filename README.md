@@ -57,7 +57,7 @@ Same scale on **Pads · 4×4**, then **Strings · Guitar**, plus the **Tuner** p
 - **String instruments** — guitar, basses, uke, mandolin, banjo, violin family; fretboard charts + editable tuning; disable strings for treble-only voicings or a broken string
 - **Capo** — song-level chord capo; separate scale capo for leads / overlay
 - **Chord library** — triads through jazz extensions; pad lights or fret diagrams
-- **Scales & modes** — lights every in-scale pad, or a scale box on the fingerboard
+- **Scales & modes** — lights every in-scale pad, or a scale box on the fingerboard with note names in each dot
 - **Progressions** — 60+ stock progressions grouped by genre
 - **Song Builder** — sections of progressions, tempo, looping preview, scale overlay, print
 - **Pad / string player** — Library selection loads on the live grid so you can play each note; optional transpose

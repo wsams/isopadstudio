@@ -562,6 +562,22 @@ input {
   min-height: 12px;
 }
 
+.fretboard.many-strings.scale .fret-string-row,
+.fretboard.many-strings.scale .fret-cells,
+.fretboard.many-strings.scale .fret-cell {
+  min-height: 18px;
+}
+
+.fretboard.many-strings.scale .fret-dot {
+  width: 16px;
+  height: 16px;
+  font-size: 0.42rem;
+}
+
+.fretboard.many-strings.scale .fret-dot.accidental {
+  font-size: 0.36rem;
+}
+
 .fret-meta {
   display: flex;
   gap: 8px;
@@ -708,6 +724,23 @@ input {
   color: #111;
   line-height: 1;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.fretboard.scale .fret-cell {
+  min-height: 24px;
+}
+
+.fretboard.scale .fret-dot {
+  width: 20px;
+  height: 20px;
+  font-size: 0.52rem;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.fretboard.scale .fret-dot.accidental {
+  font-size: 0.42rem;
+  letter-spacing: -0.08em;
 }
 
 .fret-dot.barre {

@@ -234,6 +234,8 @@ Zithers with many strings (`guzheng`, `koto`) use **open-string voicing**: chord
 - Instruments with `voicing: "open"` (guzheng, koto) light matching **open strings** only.
 - Chord dots may show **finger numbers** (1–4); open = ○, muted = × (muted rows slightly dimmed; disabled strings dimmer still).
 - Scales: box of open + ~4 frets; open scale tones as ○ at the nut; disabled strings omitted.
+- Scale dots show the **pitch-class name** (`C`, `F#`, …) in every filled fret. Root dots keep the contrasting fill (white on the chart color) and ring; they are **not** labeled `R`.
+- `resolveScaleDiagram` dots include `{ string, fret, midi, note, isRoot }`.
 - Capo: frets relative to capo; sounding pitch = open + capo + fret.
 
 ### Capo
