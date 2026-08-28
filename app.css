@@ -794,7 +794,7 @@ input {
 }
 
 .preview-area .fretboard.upright {
-  --neck-h: 460px;
+  --neck-h: 520px;
   max-width: 460px;
 }
 
@@ -864,6 +864,7 @@ input {
   align-items: center;
   justify-content: center;
   border-left: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: visible;
 }
 
 .upright-nut-cell.disabled,
@@ -901,15 +902,17 @@ input {
 .upright-neck {
   display: flex;
   flex-direction: column;
-  height: var(--neck-h, 380px);
+  height: var(--neck-h, 420px);
   background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 8%, transparent 92%, rgba(0, 0, 0, 0.18));
   border-radius: 0 0 6px 6px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .upright-fret-row {
-  flex: var(--ratio, 1) 0 0;
-  min-height: 16px;
+  flex-grow: var(--ratio, 1);
+  flex-shrink: 1;
+  flex-basis: 0;
+  min-height: 0;
   border-bottom: 2px solid rgba(210, 190, 150, 0.28);
 }
 

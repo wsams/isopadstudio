@@ -1337,7 +1337,7 @@
       const bands = coveringPositionBands(diagram, fret);
       const row = el("div", {
         class: `upright-fret-row${bands.length ? " has-pos" : ""}`,
-        style: { "--ratio": String(ratio), ...uprightBandStyle(bands) },
+        style: { "--ratio": String(ratio * 1000), ...uprightBandStyle(bands) },
       });
       row.appendChild(el("span", { class: "upright-gutter upright-fret-num" }, String(fret)));
       displayStrings.forEach((s) => {
