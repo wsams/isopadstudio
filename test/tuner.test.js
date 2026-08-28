@@ -71,11 +71,38 @@ describe("detectPitchYin", () => {
 
 describe("createPitchSmoother", () => {
   it("smooths consecutive readings and resets on large jumps", () => {
-    const s = T.createPitchSmoother({ alpha: 0.5, jumpRatio: 1.12 });
+    const s = T.createPitchSmoother({ alpha: 0.5, jumpRatio: 1.12, holdMs: 0 });
     assert.equal(s.push(440), 440);
     const mid = s.push(442);
     assert.ok(mid > 440 && mid < 442);
     const jumped = s.push(220);
     assert.equal(jumped, 220);
+  });
+
+  it("follows falling Hz more slowly than rising Hz", () => {
+    const up = T.createPitchSmoother({ alphaAttack: 0.2, alphaDecay: 0.05, holdMs: 0 });
+    const down = T.createPitchSmoother({ alphaAttack: 0.2, alphaDecay: 0.05, holdMs: 0 });
+    up.push(440);
+    down.push(440);
+    const rose = up.push(450);
+    const fell = down.push(430);
+    assert.ok(rose - 440 > 440 - fell, `rise ${rose - 440} vs fall ${440 - fell}`);
+  });
+
+  it("holds last Hz through brief dropouts then releases", () => {
+    const s = T.createPitchSmoother({ alpha: 1, holdMs: 100 });
+    assert.equal(s.push(440, 0), 440);
+    assert.equal(s.push(null, 50), 440);
+    assert.equal(s.push(NaN, 90), 440);
+    assert.equal(s.push(null, 101), null);
+    assert.equal(s.push(220, 102), 220);
+  });
+});
+
+describe("hzToNote centsExact", () => {
+  it("exposes unrounded cents for the needle", () => {
+    const n = T.hzToNote(440 * Math.pow(2, 10.4 / 1200));
+    assert.ok(Math.abs(n.centsExact - 10.4) < 0.05);
+    assert.equal(n.cents, 10);
   });
 });

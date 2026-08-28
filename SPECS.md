@@ -354,7 +354,7 @@ Legacy read fallbacks exist for older ChromaPad / mpc16chords keys (songs, activ
 - Header **Tuner** opens a modal; requests `getUserMedia` (mic). Audio stays local — never uploaded.
 - Pitch: **YIN** on `AnalyserNode` time-domain buffers; use the live `AudioContext.sampleRate`.
 - Display: nearest note (A4 = **440 Hz**), cents (−50…+50 needle), Hz; green when within ~±5¢.
-- Smooth Hz with `createPitchSmoother`; ignore low RMS / low-confidence frames.
+- Smooth Hz with `createPitchSmoother`: faster **attack**, slower **decay** (falling Hz), plus a short hold on dropouts so the needle feels damped rather than twitchy. Ignore low RMS / low-confidence frames; do not snap the needle to center when the display goes idle.
 - **Must** stop mic tracks on close / Esc / `pagehide` — do not leave the stream running.
 - Pure helpers are unit-tested; mic path is browser-only (not in CI).
 
