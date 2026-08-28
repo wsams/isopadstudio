@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.8.0](https://github.com/wsams/isopadstudio/compare/v1.7.0...v1.8.0) (2026-08-28)
+
+
+### Features
+
+* add full/focus views and neck+thumb split for upright charts ([25d1da8](https://github.com/wsams/isopadstudio/commit/25d1da87c3f6be59d9d929356c65a7df34bc81ae))
+
 # [1.7.0](https://github.com/wsams/isopadstudio/compare/v1.6.2...v1.7.0) (2026-08-28)
 
 
