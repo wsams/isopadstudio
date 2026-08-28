@@ -1,5 +1,17 @@
 # Changelog
 
+# [1.7.0](https://github.com/wsams/isopadstudio/compare/v1.6.2...v1.7.0) (2026-08-28)
+
+
+### Bug Fixes
+
+* make upright bass fret spacing follow 12-TET ([580b516](https://github.com/wsams/isopadstudio/commit/580b516744e803c41e9664999507ec97ea71cf98))
+
+
+### Features
+
+* add vertical Simandl upright bass charts ([a35ff42](https://github.com/wsams/isopadstudio/commit/a35ff42e6866dfa9d3a8a9f7a049760f240f2120))
+
 ## [1.6.2](https://github.com/wsams/isopadstudio/compare/v1.6.1...v1.6.2) (2026-07-30)
 
 
