@@ -719,6 +719,258 @@ input {
   box-shadow: 0 0 0 2px #fff;
 }
 
+.fret-method-badge {
+  color: var(--c3);
+  font-weight: 600;
+}
+
+/* Upright / standing-bass chart (Simandl and future methods) */
+.bass-method-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  flex: 1 0 100%;
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bass-method-bar[hidden] {
+  display: none !important;
+}
+
+.bass-method-chips,
+.bass-pos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.bass-pos-chip {
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--muted);
+  padding: 5px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: "IBM Plex Mono", monospace;
+  line-height: 1.15;
+  min-width: 2rem;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.bass-pos-chip:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.bass-pos-chip.active {
+  color: #fff;
+}
+
+.bass-pos-all,
+.bass-pos-none {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.card.upright-card {
+  min-width: min(100%, 280px);
+}
+
+.fretboard.upright {
+  min-width: 240px;
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 8px 8px;
+  background:
+    linear-gradient(180deg, rgba(72, 48, 28, 0.35), rgba(28, 18, 10, 0.5)),
+    rgba(0, 0, 0, 0.28);
+}
+
+.preview-area .fretboard.upright {
+  --neck-h: 460px;
+  max-width: 460px;
+}
+
+.song-card .fretboard.upright,
+.grid-gallery .fretboard.upright,
+#player-chord-ref .fretboard.upright,
+.overlay-preview .fretboard.upright {
+  --neck-h: 300px;
+  max-width: 320px;
+}
+
+.upright-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.upright-head,
+.upright-nut-row,
+.upright-fret-row {
+  display: grid;
+  grid-template-columns: 1.6rem repeat(var(--strings, 4), 1fr) 2.6rem;
+  align-items: stretch;
+}
+
+.upright-gutter,
+.upright-pos-gutter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  font-size: 0.62rem;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--muted);
+  padding-right: 4px;
+}
+
+.upright-pos-gutter {
+  justify-content: flex-start;
+  padding-left: 6px;
+  padding-right: 0;
+}
+
+.upright-string-name {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--text);
+  padding-bottom: 4px;
+}
+
+.upright-string-name.disabled {
+  opacity: 0.4;
+}
+
+.upright-nut-row {
+  border-bottom: 5px solid rgba(245, 236, 220, 0.88);
+  min-height: 28px;
+  margin-bottom: 2px;
+}
+
+.upright-nut-cell,
+.upright-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.upright-nut-cell.disabled,
+.upright-cell.disabled {
+  opacity: 0.35;
+}
+
+.upright-open {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.upright-open.root {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: "IBM Plex Mono", monospace;
+  color: #111;
+  background: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+}
+
+.upright-mute {
+  color: #c5ccd4;
+  font-size: 0.8rem;
+}
+
+.upright-neck {
+  display: flex;
+  flex-direction: column;
+  height: var(--neck-h, 380px);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 8%, transparent 92%, rgba(0, 0, 0, 0.18));
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+
+.upright-fret-row {
+  flex: var(--ratio, 1) 0 0;
+  min-height: 16px;
+  border-bottom: 2px solid rgba(210, 190, 150, 0.28);
+}
+
+.upright-fret-row.has-pos {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.upright-wire {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1.5px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(220, 220, 220, 0.7), rgba(160, 160, 160, 0.45));
+  pointer-events: none;
+}
+
+.upright-dot {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+}
+
+.upright-dot.dim {
+  opacity: 0.32;
+  transform: scale(0.78);
+}
+
+.upright-pos-labels {
+  flex-wrap: wrap;
+}
+
+.upright-pos-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 1px 5px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.upright-bridge {
+  height: 8px;
+  margin-top: 2px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, rgba(180, 140, 80, 0.55), rgba(80, 50, 20, 0.8));
+}
+
+.fret-dot.upright-dot.root {
+  box-shadow: 0 0 0 2px #fff;
+}
+
 .string-player {
   display: flex;
   flex-direction: column;
@@ -1840,5 +2092,23 @@ input[type="text"]:focus {
   .card-title .notes,
   .song-legend {
     color: #444;
+  }
+
+  .fretboard.upright {
+    background: #f6f1e8 !important;
+    border-color: #ccc;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .upright-fret-row {
+    border-bottom-color: #bbb;
+  }
+
+  .upright-dot,
+  .upright-pos-pill,
+  .upright-open.root {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

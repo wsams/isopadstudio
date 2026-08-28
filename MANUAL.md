@@ -20,12 +20,13 @@ Header layout (same on every tab):
 3. [Library — string chords](#library--string-chords)
 4. [Library — scales on pads](#library--scales-on-pads)
 5. [Library — scales on strings](#library--scales-on-strings)
-6. [Tuning](#tuning)
-7. [Tuner](#tuner)
-8. [Strings player](#strings-player)
-9. [Progressions](#progressions)
-10. [Song Builder](#song-builder)
-11. [Screenshot index](#screenshot-index)
+6. [Library — upright bass (Simandl)](#library--upright-bass-simandl)
+7. [Tuning](#tuning)
+8. [Tuner](#tuner)
+9. [Strings player](#strings-player)
+10. [Progressions](#progressions)
+11. [Song Builder](#song-builder)
+12. [Screenshot index](#screenshot-index)
 
 ---
 
@@ -101,6 +102,17 @@ Category **Pentatonic & blues** · **Blues Scale** · root **A** · standard **E
 ![G Mixolydian on violin](screenshots/08-library-violin-scale.png)
 
 **Violin** uses a fingerboard-style chart (GDAE, high string at top). Same Library controls.
+
+---
+
+## Library — upright bass (Simandl)
+
+**Strings** · **Double bass** · Library chords or scales.
+
+- Chart is a **standing bass**: nut at the top, high string (G) on the left, like a published Simandl fingerboard — not a guitar-style box.
+- Fret spacing follows a real string (long gaps in the low positions, tighter toward the octave).
+- The header tray shows **Method** (Simandl today; Rabbath can plug in later) and **Positions** ½ through VII. Toggle them on to color the regions and show **1–2–4** fingering; **All** / **None** for a quick reset.
+- Chords and scales use the same map, so a progression in Song Builder still shows where the tones sit in the positions you have enabled. Click a dot to hear that note.
 
 ---
 
