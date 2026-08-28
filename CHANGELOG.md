@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2](https://github.com/wsams/isopadstudio/compare/v1.8.1...v1.8.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* damp tuner needle with slower decay and dropout hold ([#26](https://github.com/wsams/isopadstudio/issues/26)) ([7e30629](https://github.com/wsams/isopadstudio/commit/7e306291c70b4531f8a18853e0e414335429c90f))
+
 ## [1.8.1](https://github.com/wsams/isopadstudio/compare/v1.8.0...v1.8.1) (2026-08-28)
 
 
